@@ -138,6 +138,8 @@ function DisplayRecipe() {
     }
 
     return (
+    <div>
+        <Navbar />
         <div style={{
             maxWidth: '1200px',
             margin: '0 auto',
@@ -146,7 +148,7 @@ function DisplayRecipe() {
             backgroundColor: '#f9f9f9',
             minHeight: '100vh'
         }}>
-            <Navbar />
+            
             <ToastContainer position="top-right" autoClose={3000} />
             
             <div style={{
@@ -504,6 +506,7 @@ function DisplayRecipe() {
                     to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
+        </div>
         </div>
     );
 }
