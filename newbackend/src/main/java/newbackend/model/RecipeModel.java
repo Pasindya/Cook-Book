@@ -1,17 +1,13 @@
 package newbackend.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-
-
-@Entity
+@Document(collection = "recipes") // MongoDB collection name
 public class RecipeModel {
 
     @Id
-    @GeneratedValue
-    private Long id;
+    private String id;  // MongoDB uses String/ObjectId for ID
     private String title;
     private String description;
     private String recipeImage;
@@ -21,16 +17,29 @@ public class RecipeModel {
     private String type;
     private String category;
 
-
-    public RecipeModel(){
-
+    public RecipeModel() {
     }
 
-    public Long getId() {
+    public RecipeModel(String id, String title, String description, String recipeImage,
+                       String ingredients, String steps, String time, String type, String category) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.recipeImage = recipeImage;
+        this.ingredients = ingredients;
+        this.steps = steps;
+        this.time = time;
+        this.type = type;
+        this.category = category;
+    }
+
+    // Getters and setters
+
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -95,18 +104,6 @@ public class RecipeModel {
     }
 
     public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public RecipeModel(Long id, String title, String description, String recipeImage, String ingredients, String steps, String time, String type, String category) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.recipeImage = recipeImage;
-        this.ingredients = ingredients;
-        this.steps = steps;
-        this.time = time;
-        this.type = type;
         this.category = category;
     }
 }
