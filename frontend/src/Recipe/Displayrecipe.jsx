@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { 
@@ -20,11 +20,8 @@ function DisplayRecipe() {
     const [likedRecipes, setLikedRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showMenu, setShowMenu] = useState(null);
-    const [showCommentInput, setShowCommentInput] = useState(null);
-    const [showReviewInput, setShowReviewInput] = useState(null);
-    const [newComment, setNewComment] = useState('');
-    const [newReview, setNewReview] = useState({ rating: 0, text: '' });
     const { id } = useParams();
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadRecipes();
@@ -92,35 +89,12 @@ function DisplayRecipe() {
         }
     };
 
-    const toggleCommentInput = (recipeId) => {
-        setShowCommentInput(showCommentInput === recipeId ? null : recipeId);
-        setShowReviewInput(null);
+    const navigateToComments = (recipeId) => {
+        navigate(`/recipe/${recipeId}/comments`);
     };
 
-    const toggleReviewInput = (recipeId) => {
-        setShowReviewInput(showReviewInput === recipeId ? null : recipeId);
-        setShowCommentInput(null);
-    };
-
-    const handleCommentSubmit = (recipeId) => {
-        if (!newComment.trim()) return;
-        
-        // Here you would typically send the comment to your backend
-        toast.success('Comment submitted! (Would be saved to database in production)');
-        setNewComment('');
-        setShowCommentInput(null);
-    };
-
-    const handleReviewSubmit = (recipeId) => {
-        if (!newReview.text.trim() || newReview.rating === 0) {
-            toast.error('Please add both a rating and review text');
-            return;
-        }
-        
-        // Here you would typically send the review to your backend
-        toast.success(`Review submitted! Rating: ${newReview.rating}, Text: ${newReview.text}`);
-        setNewReview({ rating: 0, text: '' });
-        setShowReviewInput(null);
+    const navigateToReviews = (recipeId) => {
+        navigate(`/recipe/${recipeId}/reviews`);
     };
 
     const formatTime = (minutes) => {
@@ -446,14 +420,14 @@ function DisplayRecipe() {
                                 </button>
                                 
                                 <button 
-                                    onClick={() => toggleCommentInput(recipe.id)}
+                                    onClick={() => navigateToComments(recipe.id)}
                                     style={{
                                         background: 'none',
                                         border: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px',
-                                        color: showCommentInput === recipe.id ? '#3a86ff' : '#666',
+                                        color: '#666',
                                         cursor: 'pointer',
                                         fontSize: '0.9rem',
                                         transition: 'all 0.2s ease',
@@ -468,14 +442,14 @@ function DisplayRecipe() {
                                 </button>
                                 
                                 <button 
-                                    onClick={() => toggleReviewInput(recipe.id)}
+                                    onClick={() => navigateToReviews(recipe.id)}
                                     style={{
                                         background: 'none',
                                         border: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px',
-                                        color: showReviewInput === recipe.id ? '#FFA500' : '#666',
+                                        color: '#666',
                                         cursor: 'pointer',
                                         fontSize: '0.9rem',
                                         transition: 'all 0.2s ease',
@@ -511,199 +485,6 @@ function DisplayRecipe() {
                                     <span>Share</span>
                                 </button>
                             </div>
-                            
-                            {/* Comment Input (shown when comment button is clicked) */}
-                            {showCommentInput === recipe.id && (
-                                <div style={{
-                                    padding: '15px 20px',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#f8f9fa'
-                                }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: '10px',
-                                        marginBottom: '10px'
-                                    }}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: '0'
-                                        }}>
-                                            <FaUser style={{ color: '#666' }} />
-                                        </div>
-                                        <textarea
-                                            value={newComment}
-                                            onChange={(e) => setNewComment(e.target.value)}
-                                            placeholder="Write a comment..."
-                                            style={{
-                                                flexGrow: '1',
-                                                padding: '10px',
-                                                borderRadius: '18px',
-                                                border: '1px solid #ddd',
-                                                minHeight: '40px',
-                                                resize: 'none',
-                                                fontFamily: 'inherit',
-                                                fontSize: '0.9rem'
-                                            }}
-                                        />
-                                    </div>
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'flex-end',
-                                        gap: '10px'
-                                    }}>
-                                        <button
-                                            onClick={() => setShowCommentInput(null)}
-                                            style={{
-                                                background: '#f0f0f0',
-                                                color: '#333',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e0e0e0'
-                                                }
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => handleCommentSubmit(recipe.id)}
-                                            style={{
-                                                background: '#3a86ff',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#2a6fd6'
-                                                }
-                                            }}
-                                        >
-                                            Post
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Review Input (shown when review button is clicked) */}
-                            {showReviewInput === recipe.id && (
-                                <div style={{
-                                    padding: '15px 20px',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#f8f9fa'
-                                }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: '10px',
-                                        marginBottom: '10px'
-                                    }}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: '0'
-                                        }}>
-                                            <FaUser style={{ color: '#666' }} />
-                                        </div>
-                                        <div style={{ flexGrow: '1' }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                gap: '5px',
-                                                marginBottom: '10px'
-                                            }}>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <button
-                                                        key={star}
-                                                        onClick={() => setNewReview({...newReview, rating: star})}
-                                                        style={{
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            cursor: 'pointer',
-                                                            fontSize: '1.2rem',
-                                                            color: star <= newReview.rating ? '#FFA500' : '#ddd'
-                                                        }}
-                                                    >
-                                                        {star <= newReview.rating ? <FaStar /> : <FaRegStar />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <textarea
-                                                value={newReview.text}
-                                                onChange={(e) => setNewReview({...newReview, text: e.target.value})}
-                                                placeholder="Write your review..."
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px',
-                                                    borderRadius: '18px',
-                                                    border: '1px solid #ddd',
-                                                    minHeight: '80px',
-                                                    resize: 'none',
-                                                    fontFamily: 'inherit',
-                                                    fontSize: '0.9rem'
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'flex-end',
-                                        gap: '10px'
-                                    }}>
-                                        <button
-                                            onClick={() => setShowReviewInput(null)}
-                                            style={{
-                                                background: '#f0f0f0',
-                                                color: '#333',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e0e0e0'
-                                                }
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => handleReviewSubmit(recipe.id)}
-                                            style={{
-                                                background: '#FFA500',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e69500'
-                                                }
-                                            }}
-                                        >
-                                            Submit Review
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                             
                             {/* Recipe Preview */}
                             <div style={{ padding: '0 20px' }}>
