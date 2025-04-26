@@ -34,7 +34,7 @@ function Navbar() {
 
   const navLinks = [
     { path: "/displayrecipe", icon: <MdExplore />, label: "Explore" },
-    { path: "/challenges", icon: <FaTrophy />, label: "Challenges" },
+    { path: "/challengers", icon: <FaTrophy />, label: "Challenges" },
     { path: "/community", icon: <RiLiveLine />, label: "Live" },
     { path: "/groups", icon: <FaUsers />, label: "Groups" }
   ];
@@ -140,7 +140,7 @@ function Navbar() {
                   </motion.span>
                 </Link>
                 <Link 
-                  to="/challenges/new" 
+                  to="/addchallengers" 
                   style={styles.dropdownItem}
                   onClick={() => setShowCreateDropdown(false)}
                 >
