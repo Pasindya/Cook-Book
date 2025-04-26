@@ -2,6 +2,9 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import RecipeAdd from './Recipe/RecipeAdd';
 import Displayrecipe from './Recipe/Displayrecipe';
+import AddChallengers from './Challengers/AddChallengers';
+import Challengers from './Challengers/challengers';
+import DisplayChallengers from './Challengers/DisplayChallengers';
 
 
 
@@ -13,6 +16,9 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/recipeAdd" element={<RecipeAdd />} />
       <Route path="/displayrecipe" element={<Displayrecipe />} />
+      <Route path="/challengers" element={<Challengers />} />
+      <Route path="/addchallengers" element={<AddChallengers />} />
+      <Route path="/displaychallengers" element={<DisplayChallengers />} />
       
     </Routes>
   );
