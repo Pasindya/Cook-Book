@@ -5,6 +5,7 @@ import Displayrecipe from './Recipe/Displayrecipe';
 import AddChallengers from './Challengers/AddChallengers';
 import Challengers from './Challengers/challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
+import UpdateChallenge from './Challengers/UpdateChallenge';
 
 
 
@@ -19,6 +20,7 @@ function App() {
       <Route path="/challengers" element={<Challengers />} />
       <Route path="/addchallengers" element={<AddChallengers />} />
       <Route path="/displaychallengers" element={<DisplayChallengers />} />
+      <Route path="/updatechallenge/:id" element={<UpdateChallenge />} />
       
     </Routes>
   );

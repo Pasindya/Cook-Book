@@ -362,7 +362,7 @@ function DisplayRecipe() {
                                 overflow: 'hidden',
                                 position: 'relative'
                             }}>
-                                <img 
+                                <img
                                     src={`http://localhost:8080/uploads/${recipe.recipeImage}`}
                                     alt={recipe.title}
                                     style={{

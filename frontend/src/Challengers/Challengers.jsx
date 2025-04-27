@@ -187,7 +187,7 @@ function Challengers() {
                         justifyContent: 'center'
                     }}>
                         <button 
-                            onClick={() => navigate('/displaychallegers')}
+                            onClick={() => navigate('/displaychallengers')}
                             style={{
                                 background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
                                 color: 'white',
@@ -461,6 +461,7 @@ function Challengers() {
                         >
                             Explore Challengers
                         </button>
+                        
                     </div>
                 )}
                 
