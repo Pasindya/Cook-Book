@@ -137,5 +137,32 @@ public class CookingChallengesController {
     }
 
 
+    //delete Part
+    @DeleteMapping("/cookingchallenge/{id}")
+    String  deleteCookingChallenge(@PathVariable Long id) {
+        //check challenge or comptition  is existing in database
+        CookingChallengesModel CookingChallengeDetails = cookingChallengesRepository.findById(id)
+                .orElseThrow(() -> new CookingChallengeNotFoundException(id));
+
+        //img delete part
+        String ChallengeImage = CookingChallengeDetails.getChallengeImage();
+        if (ChallengeImage != null && !ChallengeImage.isEmpty()) {
+            File imageFile = new File("/uploads" + ChallengeImage);
+            if (imageFile.exists()) {
+                if (imageFile.delete()) {
+                    System.out.println("Image Deleted");
+                } else {
+                    System.out.println("Failed Image Delete");
+                }
+            }
+        }
+
+        //Delete challenge for the repo
+        cookingChallengesRepository.deleteById(id);
+        return "Data with id" +id + "and image deleted";
+
+    }
+
+
 
 }
