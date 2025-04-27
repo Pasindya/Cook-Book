@@ -5,7 +5,7 @@ function AddChallengers() {
   const [formData, setFormData] = useState({
     ChallengeTitle: '',
     challengeDetails: '',
-    challengeImage: null, // Changed to store file object
+    challengeImage: null,
     startDate: '',
     endDate: '',
     Rules: ''
@@ -54,6 +54,7 @@ function AddChallengers() {
       formDataToSend.append('startDate', formData.startDate);
       formDataToSend.append('endDate', formData.endDate);
       formDataToSend.append('Rules', formData.Rules);
+      
       if (formData.challengeImage) {
         formDataToSend.append('challengeImage', formData.challengeImage);
       }
@@ -76,7 +77,8 @@ function AddChallengers() {
       });
       setPreviewImage(null);
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Failed to add challenge. Please try again.');
+      console.error('Error submitting form:', error);
+      setErrorMessage(error.response?.data || 'Failed to add challenge. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -203,7 +205,7 @@ function AddChallengers() {
                   value={formData.startDate}
                   onChange={handleChange}
                   required
-                  min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition appearance-none"
                 />
                 <span className="absolute right-3 top-2.5 text-amber-600 pointer-events-none">
@@ -226,7 +228,7 @@ function AddChallengers() {
                   value={formData.endDate}
                   onChange={handleChange}
                   required
-                  min={formData.startDate || new Date().toISOString().split('T')[0]} // Must be after start date
+                  min={formData.startDate || new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition appearance-none"
                 />
                 <span className="absolute right-3 top-2.5 text-amber-600 pointer-events-none">

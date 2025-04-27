@@ -1,5 +1,6 @@
 package newbackend.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import newbackend.exception.CookingChallengeNotFoundException;
 import newbackend.model.CookingChallengesModel;
 import newbackend.repository.CookingChallengesRepository;
@@ -16,57 +17,152 @@ import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "*")
-@RequestMapping("/cookingchallenge")
-// Base path for all methods
-
+@RequestMapping("/api/challenges")
 public class CookingChallengesController {
+
+    private final String UPLOAD_DIR = "uploads/";
+
     @Autowired
     private CookingChallengesRepository cookingChallengesRepository;
 
-    //insert
-   @PostMapping("/cookingchallenge")
-    public CookingChallengesModel newCookingChallengesModel(@RequestBody CookingChallengesModel newCookingChallengesModel){
-        return cookingChallengesRepository.save(newCookingChallengesModel);
+    // Create new challenge with image
+    @PostMapping
+    public ResponseEntity<?> createChallenge(
+            @RequestParam("ChallengeTitle") String title,
+            @RequestParam("challengeDetails") String details,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate,
+            @RequestParam("Rules") String rules,
+            @RequestParam(value = "challengeImage", required = false) MultipartFile file) {
 
-    }
+        try {
+            CookingChallengesModel challenge = new CookingChallengesModel();
+            challenge.setChallengeTitle(title);
+            challenge.setChallengeDetails(details);
+            challenge.setStartDate(startDate);
+            challenge.setEndDate(endDate);
+            challenge.setRules(rules);
 
-    //add image
-    @PostMapping("/cookingchallenge/challengeImage")
-    public String challengeImage(@RequestParam("file") MultipartFile file){
-        String folder = "uploads/";
-        String challengeImage = file.getOriginalFilename();
-
-        try{
-            File uploadDir = new File(folder);
-            if(!uploadDir.exists()){
-                uploadDir.mkdir();
+            if (file != null && !file.isEmpty()) {
+                String fileName = saveImage(file);
+                challenge.setChallengeImage(fileName);
             }
-            file.transferTo(Paths.get(folder+challengeImage));
-        }catch(IOException e){
-            e.printStackTrace();
-            return "Error Uploading file;" + challengeImage;
+
+            CookingChallengesModel savedChallenge = cookingChallengesRepository.save(challenge);
+            return ResponseEntity.ok(savedChallenge);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error creating challenge: " + e.getMessage());
         }
-        return challengeImage;
     }
 
-    //Display
+    private String saveImage(MultipartFile file) throws IOException {
+        File uploadDir = new File(UPLOAD_DIR);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdir();
+        }
+
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        file.transferTo(Paths.get(UPLOAD_DIR + fileName));
+        return fileName;
+    }
+
+    // Get all challenges
+    @GetMapping
+    public List<CookingChallengesModel> getAllChallenges() {
+        return cookingChallengesRepository.findAll();
+    }
+
+    // Get challenge by ID
     @GetMapping("/{id}")
-    List<CookingChallengesModel> getAllChallengers() {return cookingChallengesRepository.findAll();}
-
-    //catch the ID
-    @GetMapping("/cookingchallenge/{id}")
-    CookingChallengesModel getChallengeID (@PathVariable Long id){
-        return cookingChallengesRepository.findById(id).orElseThrow(() -> new CookingChallengeNotFoundException(id));
+    public ResponseEntity<CookingChallengesModel> getChallengeById(@PathVariable Long id) {
+        return ResponseEntity.ok(cookingChallengesRepository.findById(id)
+                .orElseThrow(() -> new CookingChallengeNotFoundException(id)));
     }
-    //display image
-    private final String UPLOAD_DIR = "uploads/";
-    @GetMapping("uploads/{filename}")
-    public ResponseEntity<FileSystemResource> getImage(@PathVariable String filename){
+
+    // Get image
+    @GetMapping("/images/{filename}")
+    public ResponseEntity<FileSystemResource> getImage(@PathVariable String filename) {
         File file = new File(UPLOAD_DIR + filename);
-        if(!file.exists()){
+        if (!file.exists()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(new FileSystemResource(file));
     }
+
+    //update
+    @PutMapping("/cookingchallenge/{id}")
+    public CookingChallengesModel updateCooking(
+            @RequestPart(value = "challengeDetails")String challengeDetails,
+            @RequestPart(value = "file",required = false) MultipartFile file,
+            @PathVariable Long id
+    ) {
+        System.out.println("Challenge Details:" + challengeDetails);
+        if (file != null) {
+            System.out.println("File Received:" + file.getOriginalFilename());
+        } else {
+            System.out.println("no file uploaded");
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        CookingChallengesModel newCookingChallengers;
+        try {
+            newCookingChallengers = mapper.readValue(challengeDetails, CookingChallengesModel.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Error passing Itemdetails", e);
+        }
+
+        return cookingChallengesRepository.findById(id).map(existingCookingChallenge -> {
+
+            existingCookingChallenge.setChallengeTitle(newCookingChallengers.getChallengeTitle());
+            existingCookingChallenge.setChallengeDetails(newCookingChallengers.getChallengeDetails());
+            existingCookingChallenge.setStartDate(newCookingChallengers.getStartDate());
+            existingCookingChallenge.setEndDate(newCookingChallengers.getEndDate());
+            existingCookingChallenge.setRules(newCookingChallengers.getRules());
+
+            if(file != null && !file.isEmpty()) {
+                String folder = "uploads/";
+                String ChallengeImage = file.getOriginalFilename();
+                try {
+                    file.transferTo(Paths.get(folder + ChallengeImage));
+                    existingCookingChallenge.setChallengeImage(ChallengeImage);
+                } catch (IOException e) {
+                    throw new RuntimeException("Error saving uploaded file", e);
+                }
+            }
+
+            return cookingChallengesRepository.save(existingCookingChallenge);
+
+        }).orElseThrow(() -> new CookingChallengeNotFoundException(id));
+
+    }
+
+
+    //delete Part
+    @DeleteMapping("/cookingchallenge/{id}")
+    String  deleteCookingChallenge(@PathVariable Long id) {
+        //check challenge or comptition  is existing in database
+        CookingChallengesModel CookingChallengeDetails = cookingChallengesRepository.findById(id)
+                .orElseThrow(() -> new CookingChallengeNotFoundException(id));
+
+        //img delete part
+        String ChallengeImage = CookingChallengeDetails.getChallengeImage();
+        if (ChallengeImage != null && !ChallengeImage.isEmpty()) {
+            File imageFile = new File("/uploads" + ChallengeImage);
+            if (imageFile.exists()) {
+                if (imageFile.delete()) {
+                    System.out.println("Image Deleted");
+                } else {
+                    System.out.println("Failed Image Delete");
+                }
+            }
+        }
+
+        //Delete challenge for the repo
+        cookingChallengesRepository.deleteById(id);
+        return "Data with id" +id + "and image deleted";
+
+    }
+
+
 
 }
