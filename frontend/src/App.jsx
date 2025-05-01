@@ -6,14 +6,11 @@ import AddChallengers from './Challengers/AddChallengers';
 import Challengers from './Challengers/challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
 import UpdateChallenge from './Challengers/UpdateChallenge';
-
-
-
+import Notifications from './Notifications/Notifications';
 
 function App() {
   return (
     <Routes>
-      
       <Route path="/" element={<Home />} />
       <Route path="/recipeAdd" element={<RecipeAdd />} />
       <Route path="/displayrecipe" element={<Displayrecipe />} />
@@ -21,7 +18,7 @@ function App() {
       <Route path="/addchallengers" element={<AddChallengers />} />
       <Route path="/displaychallengers" element={<DisplayChallengers />} />
       <Route path="/updatechallenge/:id" element={<UpdateChallenge />} />
-      
+      <Route path="/notifications" element={<Notifications />} />
     </Routes>
   );
 }

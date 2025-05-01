@@ -10,7 +10,8 @@ import {
   FaChevronDown,
   FaSignOutAlt,
   FaBell,
-  FaRegBell
+  FaRegBell,
+  FaBookmark
 } from 'react-icons/fa';
 import { MdOutlinePostAdd, MdExplore } from 'react-icons/md';
 import { RiLiveLine } from 'react-icons/ri';
@@ -35,6 +36,7 @@ function Navbar() {
   const navLinks = [
     { path: "/displayrecipe", icon: <MdExplore />, label: "Explore" },
     { path: "/challengers", icon: <FaTrophy />, label: "Challenges" },
+    { path: "/notifications", icon: <FaBell />, label: "Notifications" },
     { path: "/community", icon: <RiLiveLine />, label: "Live" },
     { path: "/groups", icon: <FaUsers />, label: "Groups" }
   ];
@@ -146,6 +148,14 @@ function Navbar() {
                 >
                   <FaTrophy style={styles.dropdownIcon} />
                   <span>Add Challenge</span>
+                </Link>
+                <Link 
+                  to="/notifications" 
+                  style={styles.dropdownItem}
+                  onClick={() => setShowCreateDropdown(false)}
+                >
+                  <FaBell style={styles.dropdownIcon} />
+                  <span>Add Reminder</span>
                 </Link>
               </motion.div>
             )}
