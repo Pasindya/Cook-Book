@@ -75,9 +75,9 @@ public class CookingChallengesController {
 
     // Get challenge by ID
     @GetMapping("/{id}")
-    public ResponseEntity<CookingChallengesModel> getChallengeById(@PathVariable Long id) {
+    public ResponseEntity<CookingChallengesModel> getChallengeById(@PathVariable String id) {
         return ResponseEntity.ok(cookingChallengesRepository.findById(id)
-                .orElseThrow(() -> new CookingChallengeNotFoundException(id)));
+                .orElseThrow(() -> new CookingChallengeNotFoundException("Could not find challenge with id: " + id)));
     }
 
     // Get image
@@ -90,79 +90,110 @@ public class CookingChallengesController {
         return ResponseEntity.ok(new FileSystemResource(file));
     }
 
-    //update
-    @PutMapping("/cookingchallenge/{id}")
-    public CookingChallengesModel updateCooking(
-            @RequestPart(value = "challengeDetails")String challengeDetails,
-            @RequestPart(value = "file",required = false) MultipartFile file,
-            @PathVariable Long id
-    ) {
-        System.out.println("Challenge Details:" + challengeDetails);
-        if (file != null) {
-            System.out.println("File Received:" + file.getOriginalFilename());
-        } else {
-            System.out.println("no file uploaded");
-        }
-        ObjectMapper mapper = new ObjectMapper();
-        CookingChallengesModel newCookingChallengers;
+    // Update challenge
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateChallenge(
+            @PathVariable String id,
+            @RequestParam("ChallengeTitle") String title,
+            @RequestParam("challengeDetails") String details,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate,
+            @RequestParam("Rules") String rules,
+            @RequestParam(value = "challengeImage", required = false) MultipartFile file) {
+
         try {
-            newCookingChallengers = mapper.readValue(challengeDetails, CookingChallengesModel.class);
+            System.out.println("Received update request for challenge ID: " + id);
+            System.out.println("Received data:");
+            System.out.println("Title: " + title);
+            System.out.println("Details: " + details);
+            System.out.println("Start Date: " + startDate);
+            System.out.println("End Date: " + endDate);
+            System.out.println("Rules: " + rules);
+            System.out.println("Has new image: " + (file != null && !file.isEmpty()));
+
+            // Find the existing challenge
+            CookingChallengesModel existingChallenge = cookingChallengesRepository.findById(id)
+                    .orElseThrow(() -> {
+                        System.err.println("Challenge not found with ID: " + id);
+                        return new CookingChallengeNotFoundException("Could not find challenge with id: " + id);
+                    });
+
+            System.out.println("Found existing challenge: " + existingChallenge.getId());
+
+            // Update all fields
+            existingChallenge.setChallengeTitle(title);
+            System.out.println("Updated title to: " + title);
+            
+            existingChallenge.setChallengeDetails(details);
+            System.out.println("Updated details");
+            
+            existingChallenge.setStartDate(startDate);
+            System.out.println("Updated start date to: " + startDate);
+            
+            existingChallenge.setEndDate(endDate);
+            System.out.println("Updated end date to: " + endDate);
+            
+            existingChallenge.setRules(rules);
+            System.out.println("Updated rules");
+
+            // Handle image update
+            if (file != null && !file.isEmpty()) {
+                System.out.println("Processing new image: " + file.getOriginalFilename());
+                
+                // Delete old image if exists
+                if (existingChallenge.getChallengeImage() != null) {
+                    File oldFile = new File(UPLOAD_DIR + existingChallenge.getChallengeImage());
+                    if (oldFile.exists()) {
+                        boolean deleted = oldFile.delete();
+                        System.out.println("Old image deletion " + (deleted ? "successful" : "failed"));
+                    }
+                }
+
+                // Save new image
+                String fileName = saveImage(file);
+                existingChallenge.setChallengeImage(fileName);
+                System.out.println("Saved new image: " + fileName);
+            }
+
+            // Save the updated challenge
+            CookingChallengesModel updatedChallenge = cookingChallengesRepository.save(existingChallenge);
+            System.out.println("Successfully saved updated challenge: " + updatedChallenge.getId());
+
+            return ResponseEntity.ok(updatedChallenge);
+
+        } catch (CookingChallengeNotFoundException e) {
+            System.err.println("Challenge not found error: " + e.getMessage());
+            return ResponseEntity.status(404).body(e.getMessage());
         } catch (Exception e) {
-            throw new RuntimeException("Error passing Itemdetails", e);
+            System.err.println("Error updating challenge: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error updating challenge: " + e.getMessage());
         }
+    }
 
-        return cookingChallengesRepository.findById(id).map(existingCookingChallenge -> {
+    // Delete challenge
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteChallenge(@PathVariable String id) {
+        try {
+            CookingChallengesModel challenge = cookingChallengesRepository.findById(id)
+                    .orElseThrow(() -> new CookingChallengeNotFoundException("Could not find challenge with id: " + id));
 
-            existingCookingChallenge.setChallengeTitle(newCookingChallengers.getChallengeTitle());
-            existingCookingChallenge.setChallengeDetails(newCookingChallengers.getChallengeDetails());
-            existingCookingChallenge.setStartDate(newCookingChallengers.getStartDate());
-            existingCookingChallenge.setEndDate(newCookingChallengers.getEndDate());
-            existingCookingChallenge.setRules(newCookingChallengers.getRules());
-
-            if(file != null && !file.isEmpty()) {
-                String folder = "uploads/";
-                String ChallengeImage = file.getOriginalFilename();
-                try {
-                    file.transferTo(Paths.get(folder + ChallengeImage));
-                    existingCookingChallenge.setChallengeImage(ChallengeImage);
-                } catch (IOException e) {
-                    throw new RuntimeException("Error saving uploaded file", e);
+            // Delete associated image if exists
+            if (challenge.getChallengeImage() != null) {
+                File imageFile = new File(UPLOAD_DIR + challenge.getChallengeImage());
+                if (imageFile.exists()) {
+                    imageFile.delete();
                 }
             }
 
-            return cookingChallengesRepository.save(existingCookingChallenge);
+            cookingChallengesRepository.deleteById(id);
+            return ResponseEntity.ok().build();
 
-        }).orElseThrow(() -> new CookingChallengeNotFoundException(id));
-
-    }
-
-
-    //delete Part
-    @DeleteMapping("/cookingchallenge/{id}")
-    String  deleteCookingChallenge(@PathVariable Long id) {
-        //check challenge or comptition  is existing in database
-        CookingChallengesModel CookingChallengeDetails = cookingChallengesRepository.findById(id)
-                .orElseThrow(() -> new CookingChallengeNotFoundException(id));
-
-        //img delete part
-        String ChallengeImage = CookingChallengeDetails.getChallengeImage();
-        if (ChallengeImage != null && !ChallengeImage.isEmpty()) {
-            File imageFile = new File("/uploads" + ChallengeImage);
-            if (imageFile.exists()) {
-                if (imageFile.delete()) {
-                    System.out.println("Image Deleted");
-                } else {
-                    System.out.println("Failed Image Delete");
-                }
-            }
+        } catch (CookingChallengeNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error deleting challenge: " + e.getMessage());
         }
-
-        //Delete challenge for the repo
-        cookingChallengesRepository.deleteById(id);
-        return "Data with id" +id + "and image deleted";
-
     }
-
-
 
 }

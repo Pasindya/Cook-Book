@@ -59,7 +59,21 @@ function UpdateChallenge() {
         e.preventDefault();
         
         try {
+            // Log the current state before submission
+            console.log('Current challenge state:', challenge);
+            console.log('Selected file:', selectedFile);
+
             const formData = new FormData();
+            
+            // Log each field before appending
+            console.log('Appending fields to FormData:');
+            console.log('Title:', challenge.ChallengeTitle);
+            console.log('Details:', challenge.challengeDetails);
+            console.log('Start Date:', challenge.startDate);
+            console.log('End Date:', challenge.endDate);
+            console.log('Rules:', challenge.Rules);
+            
+            // Append all fields
             formData.append('ChallengeTitle', challenge.ChallengeTitle);
             formData.append('challengeDetails', challenge.challengeDetails);
             formData.append('startDate', challenge.startDate);
@@ -67,9 +81,17 @@ function UpdateChallenge() {
             formData.append('Rules', challenge.Rules);
             
             if (selectedFile) {
-                formData.append('file', selectedFile);
+                console.log('Appending file:', selectedFile.name);
+                formData.append('challengeImage', selectedFile);
             }
 
+            // Log the FormData contents
+            for (let pair of formData.entries()) {
+                console.log('FormData entry:', pair[0], pair[1]);
+            }
+
+            console.log('Sending PUT request to:', `http://localhost:8080/api/challenges/${id}`);
+            
             const response = await axios.put(
                 `http://localhost:8080/api/challenges/${id}`,
                 formData,
@@ -80,11 +102,33 @@ function UpdateChallenge() {
                 }
             );
 
-            toast.success('Challenge updated successfully!');
-            navigate('/challenges');
+            console.log('Response received:', response);
+            
+            if (response.data) {
+                console.log('Update successful:', response.data);
+                toast.success('Challenge updated successfully!');
+                navigate('/displaychallengers');
+            } else {
+                throw new Error('No response data received');
+            }
         } catch (error) {
             console.error("Error updating challenge:", error);
-            toast.error('Failed to update challenge');
+            let errorMessage = 'Failed to update challenge';
+            
+            if (error.response) {
+                console.error("Error response data:", error.response.data);
+                console.error("Error response status:", error.response.status);
+                console.error("Error response headers:", error.response.headers);
+                errorMessage = error.response.data || errorMessage;
+            } else if (error.request) {
+                console.error("No response received:", error.request);
+                errorMessage = 'No response from server. Please check if the server is running.';
+            } else {
+                console.error("Error setting up request:", error.message);
+                errorMessage = error.message;
+            }
+            
+            toast.error(errorMessage);
         }
     };
 
@@ -97,156 +141,159 @@ function UpdateChallenge() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto">
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-2xl font-bold text-gray-800">Update Cooking Challenge</h2>
+        <div className="min-h-screen bg-gradient-to-b from-orange-50 to-amber-50 py-8 px-4">
+            <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white">
+                    <h1 className="text-3xl font-bold">Update Cooking Challenge</h1>
+                    <p className="mt-2 opacity-90">Modify the challenge details below</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div>
+                        <label htmlFor="ChallengeTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                            Challenge Title
+                        </label>
+                        <input
+                            type="text"
+                            id="ChallengeTitle"
+                            name="ChallengeTitle"
+                            value={challenge.ChallengeTitle}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
                     </div>
-                    
-                    <form onSubmit={handleSubmit} className="p-6">
-                        <div className="grid grid-cols-1 gap-6">
-                            {/* Challenge Title */}
-                            <div>
-                                <label htmlFor="ChallengeTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Challenge Title
-                                </label>
+
+                    <div>
+                        <label htmlFor="challengeDetails" className="block text-sm font-medium text-gray-700 mb-1">
+                            Challenge Details
+                        </label>
+                        <textarea
+                            id="challengeDetails"
+                            name="challengeDetails"
+                            value={challenge.challengeDetails}
+                            onChange={handleInputChange}
+                            rows="4"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                                Start Date
+                            </label>
+                            <div className="relative">
                                 <input
-                                    type="text"
-                                    id="ChallengeTitle"
-                                    name="ChallengeTitle"
-                                    value={challenge.ChallengeTitle}
+                                    type="date"
+                                    id="startDate"
+                                    name="startDate"
+                                    value={challenge.startDate}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
                                     required
                                 />
-                            </div>
-                            
-                            {/* Challenge Details */}
-                            <div>
-                                <label htmlFor="challengeDetails" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Challenge Details
-                                </label>
-                                <textarea
-                                    id="challengeDetails"
-                                    name="challengeDetails"
-                                    value={challenge.challengeDetails}
-                                    onChange={handleInputChange}
-                                    rows="4"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                ></textarea>
-                            </div>
-                            
-                            {/* Date Range */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Start Date
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="date"
-                                            id="startDate"
-                                            name="startDate"
-                                            value={challenge.startDate}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
-                                            required
-                                        />
-                                        <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
-                                        End Date
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="date"
-                                            id="endDate"
-                                            name="endDate"
-                                            value={challenge.endDate}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
-                                            required
-                                            min={challenge.startDate}
-                                        />
-                                        <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Rules */}
-                            <div>
-                                <label htmlFor="Rules" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Rules (One per line)
-                                </label>
-                                <textarea
-                                    id="Rules"
-                                    name="Rules"
-                                    value={challenge.Rules}
-                                    onChange={handleInputChange}
-                                    rows="4"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                    placeholder="Enter each rule on a new line"
-                                ></textarea>
-                            </div>
-                            
-                            {/* Image Upload */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Challenge Image
-                                </label>
-                                <div className="flex items-center space-x-4">
-                                    {previewImage && (
-                                        <div className="relative">
-                                            <img 
-                                                src={previewImage} 
-                                                alt="Preview" 
-                                                className="h-32 w-32 object-cover rounded-md"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="flex-1">
-                                        <label className="flex flex-col items-center px-4 py-2 bg-white text-blue-500 rounded-lg border border-blue-500 cursor-pointer hover:bg-blue-50">
-                                            <span className="text-sm font-medium">
-                                                {selectedFile ? 'Change Image' : 'Upload Image'}
-                                            </span>
-                                            <input 
-                                                type="file" 
-                                                className="hidden" 
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                            />
-                                        </label>
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            {selectedFile ? selectedFile.name : 'No file selected'}
-                                        </p>
-                                    </div>
-                                </div>
+                                <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
                             </div>
                         </div>
-                        
-                        <div className="mt-8 flex justify-end space-x-3">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/challenges')}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
-                            >
-                                <FaSave className="mr-2" />
-                                Update Challenge
-                            </button>
+
+                        <div>
+                            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                                End Date
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="date"
+                                    id="endDate"
+                                    name="endDate"
+                                    value={challenge.endDate}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
+                                    required
+                                    min={challenge.startDate}
+                                />
+                                <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
+                            </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="Rules" className="block text-sm font-medium text-gray-700 mb-1">
+                            Rules
+                        </label>
+                        <textarea
+                            id="Rules"
+                            name="Rules"
+                            value={challenge.Rules}
+                            onChange={handleInputChange}
+                            rows="3"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Challenge Image
+                        </label>
+                        <div className="flex items-center space-x-4">
+                            {previewImage && (
+                                <div className="relative">
+                                    <img 
+                                        src={previewImage} 
+                                        alt="Preview" 
+                                        className="h-32 w-32 object-cover rounded-md"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPreviewImage('');
+                                            setSelectedFile(null);
+                                        }}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                </div>
+                            )}
+                            <label className="flex flex-col items-center justify-center w-64 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                    </svg>
+                                    <p className="mb-2 text-sm text-gray-500">
+                                        <span className="font-semibold">Click to upload</span> or drag and drop
+                                    </p>
+                                    <p className="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 5MB)</p>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    onChange={handleFileChange}
+                                    accept="image/*"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-4">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/displaychallengers')}
+                            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+                        >
+                            <FaSave className="mr-2" />
+                            Update Challenge
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );
