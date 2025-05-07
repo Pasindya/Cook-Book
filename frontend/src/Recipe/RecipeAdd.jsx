@@ -4,6 +4,7 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { FaClock, FaUtensils, FaListUl, FaLayerGroup } from 'react-icons/fa';
 import { GiCook } from 'react-icons/gi';
+import { toast } from 'react-hot-toast';
 
 function RecipeAdd() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ function RecipeAdd() {
         formData.append("file", recipe.recipeImage);
 
         const res = await axios.post(
-          "http://localhost:8080/recipes/recipeImg", 
+          "http://localhost:8080/api/recipes/upload-image", 
           formData, 
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
@@ -76,17 +77,22 @@ function RecipeAdd() {
         recipeImage: imageName 
       };
       
-      await axios.post(
-        "http://localhost:8080/recipes", 
+      const response = await axios.post(
+        "http://localhost:8080/api/recipes", 
         recipeData, 
         { headers: { 'Content-Type': 'application/json' } }
       );
       
-      alert("Recipe added successfully!");
-      navigate('/displayrecipe');
+      if (response.status === 200 || response.status === 201) {
+        toast.success("Recipe added successfully!");
+        navigate('/displayrecipe');
+      } else {
+        throw new Error('Failed to add recipe');
+      }
     } catch (err) {
       console.error("Error:", err);
-      setError(err.response?.data?.message || "Error saving recipe. Please try again.");
+      setError(err.response?.data || "Error saving recipe. Please try again.");
+      toast.error("Failed to add recipe. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

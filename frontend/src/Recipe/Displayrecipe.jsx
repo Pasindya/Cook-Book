@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { 
@@ -25,6 +25,7 @@ function DisplayRecipe() {
     const [newComment, setNewComment] = useState('');
     const [newReview, setNewReview] = useState({ rating: 0, text: '' });
     const { id } = useParams();
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadRecipes();
@@ -37,7 +38,7 @@ function DisplayRecipe() {
 
     const loadRecipes = async () => {
         try {
-            const result = await axios.get(`http://localhost:8080/recipes`);
+            const result = await axios.get(`http://localhost:8080/api/recipes`);
             setRecipes(result.data);
             setLoading(false);
         } catch (error) {
@@ -82,14 +83,31 @@ function DisplayRecipe() {
     };
 
     const handleDelete = async (recipeId) => {
-        try {
-            await axios.delete(`http://localhost:8080/recipes/${recipeId}`);
-            toast.success('Recipe deleted successfully');
-            loadRecipes();
-        } catch (error) {
-            console.error("Error deleting recipe:", error);
-            toast.error('Failed to delete recipe');
+        if (window.confirm('Are you sure you want to delete this recipe?')) {
+            try {
+                setLoading(true);
+                console.log('Deleting recipe with ID:', recipeId);
+                
+                const response = await axios.delete(`http://localhost:8080/api/recipes/${recipeId}`);
+                console.log('Delete response:', response);
+                
+                if (response.status === 200) {
+                    setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe.id !== recipeId));
+                    toast.success('Recipe deleted successfully');
+                    setShowMenu(null);
+                    await loadRecipes();
+                }
+            } catch (error) {
+                console.error('Error deleting recipe:', error);
+                toast.error('Failed to delete recipe. Please try again.');
+            } finally {
+                setLoading(false);
+            }
         }
+    };
+
+    const handleEdit = (id) => {
+        navigate(`/recipes/edit/${id}`);
     };
 
     const toggleCommentInput = (recipeId) => {
@@ -158,6 +176,11 @@ function DisplayRecipe() {
             console.error('Error sharing:', error);
             toast.error('Failed to share recipe');
         }
+    };
+
+    const getImageUrl = (recipeImage) => {
+        if (!recipeImage) return 'https://via.placeholder.com/400x250?text=Recipe+Image';
+        return `http://localhost:8080/api/recipes/images/${recipeImage}`;
     };
 
     if (loading) {
@@ -363,7 +386,7 @@ function DisplayRecipe() {
                                 position: 'relative'
                             }}>
                                 <img
-                                    src={`http://localhost:8080/uploads/${recipe.recipeImage}`}
+                                    src={getImageUrl(recipe.recipeImage)}
                                     alt={recipe.title}
                                     style={{
                                         width: '100%',
