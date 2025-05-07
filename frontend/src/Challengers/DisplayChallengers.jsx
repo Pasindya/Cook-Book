@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { 
@@ -25,6 +25,7 @@ function DisplayChallengers() {
     const [newComment, setNewComment] = useState('');
     const [newReview, setNewReview] = useState({ rating: 0, text: '' });
     const { id } = useParams();
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadChallenges();
@@ -101,13 +102,18 @@ function DisplayChallengers() {
     };
 
     const handleDelete = async (challengeId) => {
-        try {
-            await axios.delete(`http://localhost:8080/api/challenges/${challengeId}`);
-            toast.success('Challenge deleted successfully');
-            loadChallenges();
-        } catch (error) {
-            console.error("Error deleting challenge:", error);
-            toast.error('Failed to delete challenge');
+        if (window.confirm('Are you sure you want to delete this challenge? This action cannot be undone.')) {
+            try {
+                await axios.delete(`http://localhost:8080/api/challenges/${challengeId}`);
+                toast.success('Challenge deleted successfully');
+                // Remove the deleted challenge from the state
+                setChallenges(challenges.filter(challenge => challenge.id !== challengeId));
+                // Close the menu
+                setShowMenu(null);
+            } catch (error) {
+                console.error("Error deleting challenge:", error);
+                toast.error(error.response?.data || 'Failed to delete challenge');
+            }
         }
     };
 
@@ -180,6 +186,10 @@ function DisplayChallengers() {
             console.error('Error sharing:', error);
             toast.error('Failed to share challenge');
         }
+    };
+
+    const handleUpdate = (challengeId) => {
+        navigate(`/updatechallenge/${challengeId}`);
     };
 
     if (loading) {
@@ -321,7 +331,7 @@ function DisplayChallengers() {
                                         zIndex: '10',
                                         animation: 'fadeIn 0.2s ease'
                                     }}>
-                                        <button onClick={() => UpdateNavigate(challenge.id) }
+                                        <button onClick={() => handleUpdate(challenge.id)}
                                         style={{
                                             width: '100%',
                                             padding: '10px 15px',
