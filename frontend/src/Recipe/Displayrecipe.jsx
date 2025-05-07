@@ -91,10 +91,12 @@ function DisplayRecipe() {
         if (window.confirm('Are you sure you want to delete this recipe?')) {
             try {
                 setLoading(true);
+                console.log('Deleting recipe with ID:', recipeId);
+                
                 const response = await axios.delete(`http://localhost:8080/api/recipes/${recipeId}`);
                 
                 if (response.status === 200) {
-                    setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe._id !== recipeId));
+                    setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe.id !== recipeId));
                     toast.success('Recipe deleted successfully');
                     setShowMenu(null);
                     await loadRecipes();
@@ -200,6 +202,7 @@ function DisplayRecipe() {
     return (
         <div>
             <Navbar />
+            <ToastContainer />
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -234,7 +237,7 @@ function DisplayRecipe() {
                     padding: '20px 0'
                 }}>
                     {recipes.map(recipe => (
-                        <div key={recipe._id} style={{
+                        <div key={recipe.id} style={{
                             background: 'white',
                             borderRadius: '12px',
                             overflow: 'hidden',
@@ -243,6 +246,63 @@ function DisplayRecipe() {
                             cursor: 'pointer',
                             position: 'relative'
                         }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '10px',
+                                right: '10px',
+                                display: 'flex',
+                                gap: '8px',
+                                zIndex: 2
+                            }}>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(recipe.id);
+                                    }}
+                                    style={{
+                                        background: '#ff4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '36px',
+                                        height: '36px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ff0000'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ff4444'}
+                                >
+                                    <FaTrash />
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(recipe.id);
+                                    }}
+                                    style={{
+                                        background: '#4CAF50',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '36px',
+                                        height: '36px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+                                >
+                                    <FaEdit />
+                                </button>
+                            </div>
                             <img
                                 src={getImageUrl(recipe.recipeImage)}
                                 alt={recipe.title}
@@ -311,30 +371,30 @@ function DisplayRecipe() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                toggleLike(recipe._id);
+                                                toggleLike(recipe.id);
                                             }}
                                             style={{
                                                 background: 'none',
                                                 border: 'none',
                                                 cursor: 'pointer',
-                                                color: likedRecipes.includes(recipe._id) ? '#ff6b6b' : '#666'
+                                                color: likedRecipes.includes(recipe.id) ? '#ff6b6b' : '#666'
                                             }}
                                         >
-                                            {likedRecipes.includes(recipe._id) ? <FaHeart /> : <FaRegHeart />}
+                                            {likedRecipes.includes(recipe.id) ? <FaHeart /> : <FaRegHeart />}
                                         </button>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                toggleSave(recipe._id);
+                                                toggleSave(recipe.id);
                                             }}
                                             style={{
                                                 background: 'none',
                                                 border: 'none',
                                                 cursor: 'pointer',
-                                                color: savedRecipes.includes(recipe._id) ? '#4CAF50' : '#666'
+                                                color: savedRecipes.includes(recipe.id) ? '#4CAF50' : '#666'
                                             }}
                                         >
-                                            {savedRecipes.includes(recipe._id) ? <FaBookmark /> : <FaRegBookmark />}
+                                            {savedRecipes.includes(recipe.id) ? <FaBookmark /> : <FaRegBookmark />}
                                         </button>
                                         <button
                                             onClick={(e) => {
@@ -353,7 +413,7 @@ function DisplayRecipe() {
                                     </div>
                                     <div style={{ position: 'relative' }}>
                                         <button
-                                            onClick={(e) => toggleMenu(recipe._id, e)}
+                                            onClick={(e) => toggleMenu(recipe.id, e)}
                                             style={{
                                                 background: 'none',
                                                 border: 'none',
@@ -363,7 +423,7 @@ function DisplayRecipe() {
                                         >
                                             <FaEllipsisH />
                                         </button>
-                                        {showMenu === recipe._id && (
+                                        {showMenu === recipe.id && (
                                             <div style={{
                                                 position: 'absolute',
                                                 right: '0',
@@ -376,7 +436,7 @@ function DisplayRecipe() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleEdit(recipe._id);
+                                                        handleEdit(recipe.id);
                                                     }}
                                                     style={{
                                                         display: 'flex',
@@ -395,7 +455,7 @@ function DisplayRecipe() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleDelete(recipe._id);
+                                                        handleDelete(recipe.id);
                                                     }}
                                                     style={{
                                                         display: 'flex',

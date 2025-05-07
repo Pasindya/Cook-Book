@@ -59,28 +59,27 @@ function RecipeAdd() {
     setError(null);
 
     try {
-      let imageName = '';
+      const formData = new FormData();
+      formData.append('title', recipe.title);
+      formData.append('description', recipe.description);
+      formData.append('ingredients', recipe.ingredients);
+      formData.append('steps', recipe.steps);
+      formData.append('time', recipe.time);
+      formData.append('type', recipe.type);
+      formData.append('category', recipe.category);
+      
       if (recipe.recipeImage) {
-        const formData = new FormData();
-        formData.append("file", recipe.recipeImage);
-
-        const res = await axios.post(
-          "http://localhost:8080/api/recipes/upload-image", 
-          formData, 
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        imageName = res.data;
+        formData.append('recipeImage', recipe.recipeImage);
       }
 
-      const recipeData = { 
-        ...recipe, 
-        recipeImage: imageName 
-      };
-      
       const response = await axios.post(
         "http://localhost:8080/api/recipes", 
-        recipeData, 
-        { headers: { 'Content-Type': 'application/json' } }
+        formData,
+        { 
+          headers: { 
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
       
       if (response.status === 200 || response.status === 201) {
@@ -91,7 +90,7 @@ function RecipeAdd() {
       }
     } catch (err) {
       console.error("Error:", err);
-      setError(err.response?.data || "Error saving recipe. Please try again.");
+      setError(err.response?.data?.error || "Error saving recipe. Please try again.");
       toast.error("Failed to add recipe. Please try again.");
     } finally {
       setIsSubmitting(false);
