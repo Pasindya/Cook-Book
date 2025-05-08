@@ -228,134 +228,168 @@ function DisplayRecipe() {
     }
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-rose-50 min-h-screen">
             <Navbar />
             <ToastContainer />
             
-            {/* Header Section */}
-            <div className="bg-white shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-pink-500 bg-clip-text text-transparent">
-                            Recipe Feed
-                        </h1>
-                        <div className="flex items-center space-x-4">
-                            <button 
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center space-x-2"
-                            >
-                                <FaCamera />
-                                <span>Filters</span>
-                            </button>
-                            <div className="relative">
+            {/* Hero Section */}
+            <div className="bg-gradient-to-r from-rose-300 to-orange-300 text-gray-800 py-16">
+                <div className="max-w-6xl mx-auto px-4">
+                    <div className="text-center">
+                        <h1 className="text-4xl md:text-5xl font-bold mb-4">Discover Delicious Recipes</h1>
+                        <p className="text-xl mb-8">Find and share your favorite recipes with the community</p>
+                        <div className="max-w-2xl mx-auto">
+                            <div className="flex items-center bg-white rounded-full p-2 shadow-lg">
                                 <input
                                     type="text"
-                                    placeholder="Search recipes..."
+                                    placeholder="Search for recipes..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="flex-1 px-6 py-3 text-gray-800 focus:outline-none"
                                 />
+                                <button className="bg-rose-300 text-gray-800 px-6 py-3 rounded-full hover:bg-rose-400 transition-colors">
+                                    Search
+                                </button>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Filter Section */}
-                    {showFilters && (
-                        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <h3 className="font-semibold mb-2">Recipe Type</h3>
-                                    <div className="space-y-2">
-                                        {['Vegetarian', 'Vegan', 'Meat', 'Dessert', 'Spicy'].map(type => (
-                                            <label key={type} className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedFilters.type.includes(type)}
-                                                    onChange={(e) => {
-                                                        const newTypes = e.target.checked
-                                                            ? [...selectedFilters.type, type]
-                                                            : selectedFilters.type.filter(t => t !== type);
-                                                        setSelectedFilters({...selectedFilters, type: newTypes});
-                                                    }}
-                                                    className="rounded text-blue-500"
-                                                />
-                                                <span>{type}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-2">Cooking Time</h3>
-                                    <select
-                                        value={selectedFilters.time || ''}
-                                        onChange={(e) => setSelectedFilters({...selectedFilters, time: e.target.value ? parseInt(e.target.value) : null})}
-                                        className="w-full p-2 border rounded-lg"
-                                    >
-                                        <option value="">Any time</option>
-                                        <option value="30">Under 30 minutes</option>
-                                        <option value="60">Under 1 hour</option>
-                                        <option value="120">Under 2 hours</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-2">Difficulty</h3>
-                                    <select
-                                        value={selectedFilters.difficulty || ''}
-                                        onChange={(e) => setSelectedFilters({...selectedFilters, difficulty: e.target.value || null})}
-                                        className="w-full p-2 border rounded-lg"
-                                    >
-                                        <option value="">Any difficulty</option>
-                                        <option value="easy">Easy</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="hard">Hard</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Tabs */}
-                    <div className="flex space-x-4 border-b">
-                        <button
-                            onClick={() => setActiveTab('all')}
-                            className={`px-4 py-2 ${activeTab === 'all' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
-                        >
-                            All Recipes
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('saved')}
-                            className={`px-4 py-2 ${activeTab === 'saved' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
-                        >
-                            Saved
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('liked')}
-                            className={`px-4 py-2 ${activeTab === 'liked' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'}`}
-                        >
-                            Liked
-                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Recipe Feed */}
+            {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Quick Filters */}
+                <div className="flex flex-wrap gap-4 mb-8">
+                    <button 
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow text-rose-500"
+                    >
+                        <FaCamera />
+                        <span>Filters</span>
+                    </button>
+                    {['Vegetarian', 'Vegan', 'Meat', 'Dessert', 'Spicy'].map(type => (
+                        <button
+                            key={type}
+                            onClick={() => {
+                                const newTypes = selectedFilters.type.includes(type)
+                                    ? selectedFilters.type.filter(t => t !== type)
+                                    : [...selectedFilters.type, type];
+                                setSelectedFilters({...selectedFilters, type: newTypes});
+                            }}
+                            className={`px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-shadow ${
+                                selectedFilters.type.includes(type)
+                                    ? 'bg-rose-300 text-gray-800'
+                                    : 'bg-white text-rose-500'
+                            }`}
+                        >
+                            {type}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Filter Panel */}
+                {showFilters && (
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4">Recipe Type</h3>
+                                <div className="space-y-3">
+                                    {['Vegetarian', 'Vegan', 'Meat', 'Dessert', 'Spicy'].map(type => (
+                                        <label key={type} className="flex items-center space-x-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFilters.type.includes(type)}
+                                                onChange={(e) => {
+                                                    const newTypes = e.target.checked
+                                                        ? [...selectedFilters.type, type]
+                                                        : selectedFilters.type.filter(t => t !== type);
+                                                    setSelectedFilters({...selectedFilters, type: newTypes});
+                                                }}
+                                                className="w-5 h-5 rounded text-rose-500"
+                                            />
+                                            <span className="text-gray-700">{type}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4">Cooking Time</h3>
+                                <select
+                                    value={selectedFilters.time || ''}
+                                    onChange={(e) => setSelectedFilters({...selectedFilters, time: e.target.value ? parseInt(e.target.value) : null})}
+                                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                >
+                                    <option value="">Any time</option>
+                                    <option value="30">Under 30 minutes</option>
+                                    <option value="60">Under 1 hour</option>
+                                    <option value="120">Under 2 hours</option>
+                                </select>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4">Difficulty</h3>
+                                <select
+                                    value={selectedFilters.difficulty || ''}
+                                    onChange={(e) => setSelectedFilters({...selectedFilters, difficulty: e.target.value || null})}
+                                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                >
+                                    <option value="">Any difficulty</option>
+                                    <option value="easy">Easy</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="hard">Hard</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Recipe Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredRecipes.map(recipe => (
-                        <div key={recipe.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                            {/* Post Header */}
-                            <div className="p-4 border-b border-gray-100">
-                                <div className="flex items-center justify-between">
+                        <div key={recipe.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
+                            {/* Recipe Image with Overlay */}
+                            <div className="relative group">
+                                <img
+                                    src={getImageUrl(recipe.recipeImage)}
+                                    alt={recipe.title}
+                                    onError={handleImageError}
+                                    className="w-full h-64 object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="absolute bottom-4 left-4 right-4">
+                                        <div className="flex items-center space-x-4 text-white">
+                                            <div className="flex items-center">
+                                                <FaClock className="mr-2" />
+                                                <span>{formatTime(recipe.time)}</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <FaUtensils className="mr-2" />
+                                                <span>{recipe.servings || 'N/A'} servings</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <FaBookOpen className="mr-2" />
+                                                <span>{recipe.difficulty || 'Medium'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute top-4 right-4 bg-white/90 rounded-full p-2 shadow-md">
+                                    {getTypeIcon(recipe.type)}
+                                </div>
+                            </div>
+
+                            {/* Recipe Content */}
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                        <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center overflow-hidden">
                                             {recipe.authorImage ? (
                                                 <img src={recipe.authorImage} alt={recipe.author} className="w-full h-full object-cover" />
                                             ) : (
-                                                <FaUser className="text-gray-500" />
+                                                <FaUser className="text-rose-400" />
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">{recipe.author || 'Anonymous Chef'}</h3>
+                                            <h3 className="font-semibold text-gray-800">{recipe.author || 'Anonymous Chef'}</h3>
                                             <div className="flex items-center space-x-2 text-sm text-gray-500">
                                                 <span>{new Date(recipe.createdAt).toLocaleDateString()}</span>
                                                 {recipe.location && (
@@ -372,88 +406,56 @@ function DisplayRecipe() {
                                     </div>
                                     <button 
                                         onClick={(e) => toggleMenu(recipe.id, e)}
-                                        className="p-2 hover:bg-gray-100 rounded-full"
+                                        className="p-2 hover:bg-rose-50 rounded-full text-rose-400"
                                     >
-                                        <FaEllipsisH className="text-gray-500" />
+                                        <FaEllipsisH />
                                     </button>
                                 </div>
-                            </div>
 
-                            {/* Recipe Image */}
-                            <div className="relative group">
-                                <img
-                                    src={getImageUrl(recipe.recipeImage)}
-                                    alt={recipe.title}
-                                    onError={handleImageError}
-                                    className="w-full h-64 object-cover"
-                                />
-                                <div className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md">
-                                    {getTypeIcon(recipe.type)}
-                                </div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <div className="flex items-center space-x-4 text-white">
-                                        <div className="flex items-center">
-                                            <FaClock className="mr-1" />
-                                            <span>{formatTime(recipe.time)}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <FaUtensils className="mr-1" />
-                                            <span>{recipe.servings || 'N/A'} servings</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <FaBookOpen className="mr-1" />
-                                            <span>{recipe.difficulty || 'Medium'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Recipe Content */}
-                            <div className="p-4">
-                                <h2 className="text-xl font-bold mb-2">{recipe.title}</h2>
+                                <h2 className="text-xl font-bold mb-2 text-gray-800">{recipe.title}</h2>
                                 <p className="text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
-                                
+
                                 {/* Tags */}
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     {recipe.tags?.map(tag => (
-                                        <span key={tag} className="px-2 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
+                                        <span key={tag} className="px-3 py-1 bg-rose-50 rounded-full text-sm text-rose-500 hover:bg-rose-100 transition-colors">
                                             #{tag}
                                         </span>
                                     ))}
                                 </div>
 
                                 {/* Engagement Bar */}
-                                <div className="flex items-center justify-between border-t border-b border-gray-100 py-3">
+                                <div className="flex items-center justify-between border-t border-rose-100 pt-4">
                                     <button 
                                         onClick={() => toggleLike(recipe.id)}
-                                        className="flex items-center space-x-2 text-gray-500 hover:text-red-500 transition-colors"
+                                        className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         {likedRecipes.includes(recipe.id) ? 
-                                            <FaHeart className="text-red-500" /> : 
+                                            <FaHeart className="text-rose-400" /> : 
                                             <FaRegHeart />
                                         }
                                         <span>{recipe.likes || 0}</span>
                                     </button>
                                     <button 
                                         onClick={() => toggleCommentInput(recipe.id)}
-                                        className="flex items-center space-x-2 text-gray-500 hover:text-blue-500 transition-colors"
+                                        className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         <FaComment />
                                         <span>{recipe.comments?.length || 0}</span>
                                     </button>
                                     <button 
                                         onClick={() => shareRecipe(recipe)}
-                                        className="flex items-center space-x-2 text-gray-500 hover:text-green-500 transition-colors"
+                                        className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         <FaShareAlt />
                                         <span>Share</span>
                                     </button>
                                     <button 
                                         onClick={() => toggleSave(recipe.id)}
-                                        className="flex items-center space-x-2 text-gray-500 hover:text-yellow-500 transition-colors"
+                                        className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         {savedRecipes.includes(recipe.id) ? 
-                                            <FaBookmark className="text-yellow-500" /> : 
+                                            <FaBookmark className="text-rose-400" /> : 
                                             <FaRegBookmark />
                                         }
                                         <span>Save</span>
@@ -464,21 +466,21 @@ function DisplayRecipe() {
                                 {showCommentInput === recipe.id && (
                                     <div className="mt-4">
                                         <div className="flex items-center space-x-2 mb-2">
-                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <FaUser className="text-gray-500" />
+                                            <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center">
+                                                <FaUser className="text-rose-400" />
                                             </div>
                                             <textarea
                                                 value={newComment}
                                                 onChange={(e) => setNewComment(e.target.value)}
                                                 placeholder="Write a comment..."
-                                                className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                className="flex-1 p-2 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-300 focus:border-transparent"
                                                 rows="2"
                                             />
                                         </div>
                                         <div className="flex justify-end">
                                             <button
                                                 onClick={() => handleCommentSubmit(recipe.id)}
-                                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                className="px-4 py-2 bg-rose-300 text-gray-800 rounded-lg hover:bg-rose-400 transition-colors"
                                             >
                                                 Post Comment
                                             </button>
@@ -488,17 +490,17 @@ function DisplayRecipe() {
 
                                 {/* Recipe Actions */}
                                 {showMenu === recipe.id && (
-                                    <div className="absolute right-4 top-12 bg-white rounded-lg shadow-lg border border-gray-100 z-50">
+                                    <div className="absolute right-4 top-12 bg-white rounded-lg shadow-lg border border-rose-100 z-50">
                                         <button
                                             onClick={() => handleEdit(recipe.id)}
-                                            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 w-full"
+                                            className="flex items-center space-x-2 px-4 py-2 hover:bg-rose-50 w-full text-rose-500"
                                         >
-                                            <FaEdit className="text-blue-500" />
+                                            <FaEdit />
                                             <span>Edit Recipe</span>
                                         </button>
                                         <button
                                             onClick={() => handleDelete(recipe.id)}
-                                            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 w-full text-red-500"
+                                            className="flex items-center space-x-2 px-4 py-2 hover:bg-rose-50 w-full text-red-400"
                                         >
                                             <FaTrash />
                                             <span>Delete Recipe</span>
