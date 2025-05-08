@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { 
@@ -25,10 +25,15 @@ function DisplayRecipe() {
     const [newComment, setNewComment] = useState('');
     const [newReview, setNewReview] = useState({ rating: 0, text: '' });
     const { id } = useParams();
+    const navigate = useNavigate();
+
+    const handleImageError = (e) => {
+        e.target.onerror = null;
+        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZSBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+    };
 
     useEffect(() => {
         loadRecipes();
-        // Load saved recipes from localStorage if available
         const saved = JSON.parse(localStorage.getItem('savedRecipes')) || [];
         const liked = JSON.parse(localStorage.getItem('likedRecipes')) || [];
         setSavedRecipes(saved);
@@ -37,12 +42,13 @@ function DisplayRecipe() {
 
     const loadRecipes = async () => {
         try {
-            const result = await axios.get(`http://localhost:8080/recipes`);
+            setLoading(true);
+            const result = await axios.get(`http://localhost:8080/api/recipes`);
             setRecipes(result.data);
-            setLoading(false);
         } catch (error) {
             console.error("Error loading recipes:", error);
-            toast.error('Failed to load recipes');
+            toast.error(error.response?.data?.error || 'Failed to load recipes');
+        } finally {
             setLoading(false);
         }
     };
@@ -82,14 +88,30 @@ function DisplayRecipe() {
     };
 
     const handleDelete = async (recipeId) => {
-        try {
-            await axios.delete(`http://localhost:8080/recipes/${recipeId}`);
-            toast.success('Recipe deleted successfully');
-            loadRecipes();
-        } catch (error) {
-            console.error("Error deleting recipe:", error);
-            toast.error('Failed to delete recipe');
+        if (window.confirm('Are you sure you want to delete this recipe?')) {
+            try {
+                setLoading(true);
+                console.log('Deleting recipe with ID:', recipeId);
+                
+                const response = await axios.delete(`http://localhost:8080/api/recipes/${recipeId}`);
+                
+                if (response.status === 200) {
+                    setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe.id !== recipeId));
+                    toast.success('Recipe deleted successfully');
+                    setShowMenu(null);
+                    await loadRecipes();
+                }
+            } catch (error) {
+                console.error('Error deleting recipe:', error);
+                toast.error(error.response?.data?.error || 'Failed to delete recipe');
+            } finally {
+                setLoading(false);
+            }
         }
+    };
+
+    const handleEdit = (id) => {
+        navigate(`/recipes/edit/${id}`);
     };
 
     const toggleCommentInput = (recipeId) => {
@@ -131,7 +153,7 @@ function DisplayRecipe() {
     };
 
     const getTypeIcon = (type) => {
-        switch(type.toLowerCase()) {
+        switch(type?.toLowerCase()) {
             case 'vegetarian': return <FaLeaf style={{ color: '#4CAF50' }} />;
             case 'vegan': return <GiFruitBowl style={{ color: '#8BC34A' }} />;
             case 'meat': return <GiChickenOven style={{ color: '#F44336' }} />;
@@ -150,7 +172,6 @@ function DisplayRecipe() {
                     url: window.location.href,
                 });
             } else {
-                // Fallback for browsers that don't support Web Share API
                 await navigator.clipboard.writeText(window.location.href);
                 toast.info('Link copied to clipboard!');
             }
@@ -160,33 +181,20 @@ function DisplayRecipe() {
         }
     };
 
+    const getImageUrl = (recipeImage) => {
+        if (!recipeImage) return 'https://via.placeholder.com/400x250?text=Recipe+Image';
+        return `http://localhost:8080/api/recipes/images/${recipeImage}`;
+    };
+
     if (loading) {
         return (
             <div style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                height: '100vh',
-                fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                height: '100vh'
             }}>
-                <div style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    borderRadius: '12px',
-                    background: '#fff',
-                    boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
-                }}>
-                    <h2 style={{ color: '#333', marginBottom: '20px' }}>Loading delicious recipes...</h2>
-                    <div style={{ 
-                        width: '50px', 
-                        height: '50px', 
-                        border: '5px solid #f3f3f3',
-                        borderTop: '5px solid #3a86ff',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto'
-                    }}></div>
-                </div>
+                <div>Loading...</div>
             </div>
         );
     }
@@ -194,6 +202,7 @@ function DisplayRecipe() {
     return (
         <div>
             <Navbar />
+            <ToastContainer />
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -202,9 +211,6 @@ function DisplayRecipe() {
                 backgroundColor: '#f9f9f9',
                 minHeight: '100vh'
             }}>
-                
-                <ToastContainer position="top-right" autoClose={3000} />
-                
                 <div style={{
                     textAlign: 'center',
                     margin: '30px 0',
@@ -219,68 +225,43 @@ function DisplayRecipe() {
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         display: 'inline-block'
-                    }}>Delicious Recipes</h1>
-                    <p style={{
-                        color: '#666',
-                        fontSize: '1.1rem',
-                        maxWidth: '700px',
-                        margin: '0 auto'
-                    }}>Discover amazing recipes shared by our community of food lovers</p>
+                    }}>
+                        Recipe Collection
+                    </h1>
                 </div>
-                
+
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                    gap: '30px',
-                    marginTop: '20px'
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                    gap: '20px',
+                    padding: '20px 0'
                 }}>
-                    {recipes.map((recipe) => (
+                    {recipes.map(recipe => (
                         <div key={recipe.id} style={{
-                            background: '#fff',
-                            borderRadius: '16px',
-                            boxShadow: '0 8px 25px rgba(0,0,0,0.08)',
+                            background: 'white',
+                            borderRadius: '12px',
                             overflow: 'hidden',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            ':hover': {
-                                transform: 'translateY(-5px)',
-                                boxShadow: '0 12px 30px rgba(0,0,0,0.15)'
-                            }
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                            transition: 'transform 0.2s',
+                            cursor: 'pointer',
+                            position: 'relative'
                         }}>
-                            {/* Recipe Type Badge */}
                             <div style={{
                                 position: 'absolute',
-                                top: '15px',
-                                right: '15px',
-                                background: 'rgba(255,255,255,0.9)',
-                                padding: '5px 12px',
-                                borderRadius: '20px',
+                                top: '10px',
+                                right: '10px',
                                 display: 'flex',
-                                alignItems: 'center',
                                 gap: '8px',
-                                zIndex: '1',
-                                boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                                zIndex: 2
                             }}>
-                                {getTypeIcon(recipe.type)}
-                                <span style={{
-                                    color: '#333',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '600',
-                                    textTransform: 'capitalize'
-                                }}>{recipe.type}</span>
-                            </div>
-                            
-                            {/* Three Dots Menu */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '15px',
-                                left: '15px',
-                                zIndex: '2'
-                            }}>
-                                <button 
-                                    onClick={(e) => toggleMenu(recipe.id, e)}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(recipe.id);
+                                    }}
                                     style={{
-                                        background: 'rgba(255,255,255,0.9)',
+                                        background: '#ff4444',
+                                        color: 'white',
                                         border: 'none',
                                         borderRadius: '50%',
                                         width: '36px',
@@ -289,565 +270,215 @@ function DisplayRecipe() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         cursor: 'pointer',
-                                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            background: '#f0f0f0'
-                                        }
+                                        transition: 'background-color 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                                     }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ff0000'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ff4444'}
                                 >
-                                    <FaEllipsisH />
+                                    <FaTrash />
                                 </button>
-                                
-                                {showMenu === recipe.id && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '40px',
-                                        left: '0',
-                                        background: '#fff',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                        width: '160px',
-                                        overflow: 'hidden',
-                                        zIndex: '10',
-                                        animation: 'fadeIn 0.2s ease'
-                                    }}>
-                                        <button style={{
-                                            width: '100%',
-                                            padding: '10px 15px',
-                                            border: 'none',
-                                            background: 'none',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '10px',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            color: '#333',
-                                            ':hover': {
-                                                background: '#f5f5f5'
-                                            }
-                                        }}>
-                                            <FaEdit style={{ color: '#3a86ff' }} />
-                                            Edit
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(recipe.id)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '10px 15px',
-                                                border: 'none',
-                                                background: 'none',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '10px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                color: '#ff6b6b',
-                                                ':hover': {
-                                                    background: '#f5f5f5'
-                                                }
-                                            }}
-                                        >
-                                            <FaTrash />
-                                            Delete
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* Recipe Image */}
-                            <div style={{
-                                width: '100%',
-                                height: '250px',
-                                overflow: 'hidden',
-                                position: 'relative'
-                            }}>
-                                <img
-                                    src={`http://localhost:8080/uploads/${recipe.recipeImage}`}
-                                    alt={recipe.title}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(recipe.id);
+                                    }}
                                     style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        transition: 'transform 0.5s ease'
+                                        background: '#4CAF50',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '36px',
+                                        height: '36px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                                     }}
-                                    onError={(e) => {
-                                        e.target.src = 'https://via.placeholder.com/400x250?text=Recipe+Image';
-                                    }}
-                                />
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: '0',
-                                    left: '0',
-                                    right: '0',
-                                    height: '60px',
-                                    background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)'
-                                }}></div>
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+                                >
+                                    <FaEdit />
+                                </button>
                             </div>
-                            
-                            {/* Recipe Header */}
+                            <img
+                                src={getImageUrl(recipe.recipeImage)}
+                                alt={recipe.title}
+                                onError={handleImageError}
+                                style={{
+                                    width: '100%',
+                                    height: '200px',
+                                    objectFit: 'cover'
+                                }}
+                            />
                             <div style={{
-                                padding: '20px 20px 15px',
+                                padding: '15px',
                                 position: 'relative'
                             }}>
-                                <h2 style={{
-                                    margin: '0 0 10px',
-                                    fontSize: '1.5rem',
-                                    fontWeight: '600',
-                                    color: '#333',
-                                    lineHeight: '1.3'
-                                }}>{recipe.title}</h2>
-                                
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '15px',
+                                <h3 style={{
+                                    margin: '0 0 10px 0',
+                                    fontSize: '1.2rem',
+                                    color: '#333'
+                                }}>
+                                    {recipe.title}
+                                </h3>
+                                <p style={{
+                                    color: '#666',
+                                    fontSize: '0.9rem',
                                     marginBottom: '15px'
                                 }}>
-                                    <span style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        color: '#666',
-                                        fontSize: '0.9rem'
-                                    }}>
-                                        <FaClock style={{ color: '#3a86ff' }} />
-                                        {formatTime(recipe.time)}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            {/* Recipe Actions */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '0 20px 15px',
-                                borderBottom: '1px solid #eee'
-                            }}>
-                                <button 
-                                    onClick={() => toggleLike(recipe.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        color: likedRecipes.includes(recipe.id) ? '#ff6b6b' : '#666',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            transform: 'scale(1.1)'
-                                        }
-                                    }}
-                                >
-                                    {likedRecipes.includes(recipe.id) ? <FaHeart /> : <FaRegHeart />}
-                                    <span>Like</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => toggleCommentInput(recipe.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        color: showCommentInput === recipe.id ? '#3a86ff' : '#666',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            transform: 'scale(1.1)',
-                                            color: '#3a86ff'
-                                        }
-                                    }}
-                                >
-                                    <FaComment />
-                                    <span>Comment</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => toggleReviewInput(recipe.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        color: showReviewInput === recipe.id ? '#FFA500' : '#666',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            transform: 'scale(1.1)',
-                                            color: '#FFA500'
-                                        }
-                                    }}
-                                >
-                                    <FaStar />
-                                    <span>Review</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => shareRecipe(recipe)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        color: '#666',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            transform: 'scale(1.1)',
-                                            color: '#3a86ff'
-                                        }
-                                    }}
-                                >
-                                    <FaShareAlt />
-                                    <span>Share</span>
-                                </button>
-                            </div>
-                            
-                            {/* Comment Input (shown when comment button is clicked) */}
-                            {showCommentInput === recipe.id && (
+                                    {recipe.description}
+                                </p>
                                 <div style={{
-                                    padding: '15px 20px',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#f8f9fa'
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginTop: '10px'
                                 }}>
                                     <div style={{
                                         display: 'flex',
-                                        gap: '10px',
-                                        marginBottom: '10px'
+                                        alignItems: 'center',
+                                        gap: '5px'
                                     }}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: '0'
-                                        }}>
-                                            <FaUser style={{ color: '#666' }} />
-                                        </div>
-                                        <textarea
-                                            value={newComment}
-                                            onChange={(e) => setNewComment(e.target.value)}
-                                            placeholder="Write a comment..."
-                                            style={{
-                                                flexGrow: '1',
-                                                padding: '10px',
-                                                borderRadius: '18px',
-                                                border: '1px solid #ddd',
-                                                minHeight: '40px',
-                                                resize: 'none',
-                                                fontFamily: 'inherit',
-                                                fontSize: '0.9rem'
-                                            }}
-                                        />
+                                        <FaClock style={{ color: '#666' }} />
+                                        <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                                            {formatTime(recipe.time)}
+                                        </span>
                                     </div>
                                     <div style={{
                                         display: 'flex',
-                                        justifyContent: 'flex-end',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                    }}>
+                                        {getTypeIcon(recipe.type)}
+                                        <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                                            {recipe.type}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginTop: '15px'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
                                         gap: '10px'
                                     }}>
                                         <button
-                                            onClick={() => setShowCommentInput(null)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleLike(recipe.id);
+                                            }}
                                             style={{
-                                                background: '#f0f0f0',
-                                                color: '#333',
+                                                background: 'none',
                                                 border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
                                                 cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e0e0e0'
-                                                }
+                                                color: likedRecipes.includes(recipe.id) ? '#ff6b6b' : '#666'
                                             }}
                                         >
-                                            Cancel
+                                            {likedRecipes.includes(recipe.id) ? <FaHeart /> : <FaRegHeart />}
                                         </button>
                                         <button
-                                            onClick={() => handleCommentSubmit(recipe.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleSave(recipe.id);
+                                            }}
                                             style={{
-                                                background: '#3a86ff',
-                                                color: 'white',
+                                                background: 'none',
                                                 border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
                                                 cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#2a6fd6'
-                                                }
+                                                color: savedRecipes.includes(recipe.id) ? '#4CAF50' : '#666'
                                             }}
                                         >
-                                            Post
+                                            {savedRecipes.includes(recipe.id) ? <FaBookmark /> : <FaRegBookmark />}
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                shareRecipe(recipe);
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: '#666'
+                                            }}
+                                        >
+                                            <FaShareAlt />
                                         </button>
                                     </div>
-                                </div>
-                            )}
-                            
-                            {/* Review Input (shown when review button is clicked) */}
-                            {showReviewInput === recipe.id && (
-                                <div style={{
-                                    padding: '15px 20px',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#f8f9fa'
-                                }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: '10px',
-                                        marginBottom: '10px'
-                                    }}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: '0'
-                                        }}>
-                                            <FaUser style={{ color: '#666' }} />
-                                        </div>
-                                        <div style={{ flexGrow: '1' }}>
+                                    <div style={{ position: 'relative' }}>
+                                        <button
+                                            onClick={(e) => toggleMenu(recipe.id, e)}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: '#666'
+                                            }}
+                                        >
+                                            <FaEllipsisH />
+                                        </button>
+                                        {showMenu === recipe.id && (
                                             <div style={{
-                                                display: 'flex',
-                                                gap: '5px',
-                                                marginBottom: '10px'
+                                                position: 'absolute',
+                                                right: '0',
+                                                top: '100%',
+                                                background: 'white',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                borderRadius: '4px',
+                                                zIndex: 1000
                                             }}>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <button
-                                                        key={star}
-                                                        onClick={() => setNewReview({...newReview, rating: star})}
-                                                        style={{
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            cursor: 'pointer',
-                                                            fontSize: '1.2rem',
-                                                            color: star <= newReview.rating ? '#FFA500' : '#ddd'
-                                                        }}
-                                                    >
-                                                        {star <= newReview.rating ? <FaStar /> : <FaRegStar />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <textarea
-                                                value={newReview.text}
-                                                onChange={(e) => setNewReview({...newReview, text: e.target.value})}
-                                                placeholder="Write your review..."
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px',
-                                                    borderRadius: '18px',
-                                                    border: '1px solid #ddd',
-                                                    minHeight: '80px',
-                                                    resize: 'none',
-                                                    fontFamily: 'inherit',
-                                                    fontSize: '0.9rem'
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'flex-end',
-                                        gap: '10px'
-                                    }}>
-                                        <button
-                                            onClick={() => setShowReviewInput(null)}
-                                            style={{
-                                                background: '#f0f0f0',
-                                                color: '#333',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e0e0e0'
-                                                }
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => handleReviewSubmit(recipe.id)}
-                                            style={{
-                                                background: '#FFA500',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '8px 15px',
-                                                borderRadius: '18px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                ':hover': {
-                                                    background: '#e69500'
-                                                }
-                                            }}
-                                        >
-                                            Submit Review
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Recipe Preview */}
-                            <div style={{ padding: '0 20px' }}>
-                                <p style={{
-                                    color: '#555',
-                                    fontSize: '0.95rem',
-                                    lineHeight: '1.6',
-                                    margin: '15px 0',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: '3',
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
-                                }}>{recipe.description}</p>
-                                
-                                <button 
-                                    onClick={() => toggleExpand(recipe.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#3a86ff',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        padding: '5px 0 15px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.95rem',
-                                        transition: 'all 0.2s ease',
-                                        ':hover': {
-                                            color: '#2a6fd6'
-                                        }
-                                    }}
-                                >
-                                    <FaEllipsisH />
-                                    {expandedRecipe === recipe.id ? 'Show less' : 'Show more'}
-                                </button>
-                            </div>
-                            
-                            {/* Expanded Recipe Details */}
-                            {expandedRecipe === recipe.id && (
-                                <div style={{
-                                    padding: '0 20px 20px',
-                                    borderTop: '1px solid #eee',
-                                    animation: 'fadeIn 0.3s ease'
-                                }}>
-                                    <div style={{ marginBottom: '20px' }}>
-                                        <h3 style={{
-                                            fontSize: '1.2rem',
-                                            margin: '15px 0 10px',
-                                            color: '#333',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            paddingBottom: '5px',
-                                            borderBottom: '2px solid #f0f0f0'
-                                        }}>
-                                            <FaUtensils style={{ color: '#3a86ff' }} />
-                                            Ingredients
-                                        </h3>
-                                        <ul style={{
-                                            margin: '0',
-                                            paddingLeft: '20px',
-                                            color: '#555',
-                                            lineHeight: '1.8'
-                                        }}>
-                                            {recipe.ingredients.split('\n').filter(i => i.trim()).map((item, i) => (
-                                                <li key={i} style={{ 
-                                                    marginBottom: '5px',
-                                                    position: 'relative',
-                                                    paddingLeft: '20px'
-                                                }}>
-                                                    <span style={{
-                                                        position: 'absolute',
-                                                        left: '0',
-                                                        color: '#3a86ff'
-                                                    }}>•</span>
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    
-                                    <div>
-                                        <h3 style={{
-                                            fontSize: '1.2rem',
-                                            margin: '15px 0 10px',
-                                            color: '#333',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            paddingBottom: '5px',
-                                            borderBottom: '2px solid #f0f0f0'
-                                        }}>
-                                            <FaUtensils style={{ color: '#3a86ff' }} />
-                                            Steps
-                                        </h3>
-                                        <ol style={{
-                                            margin: '0',
-                                            paddingLeft: '20px',
-                                            color: '#555',
-                                            lineHeight: '1.8'
-                                        }}>
-                                            {recipe.steps.split('\n').filter(s => s.trim()).map((step, i) => (
-                                                <li key={i} style={{ 
-                                                    marginBottom: '10px',
-                                                    position: 'relative',
-                                                    paddingLeft: '25px'
-                                                }}>
-                                                    <span style={{
-                                                        position: 'absolute',
-                                                        left: '0',
-                                                        background: '#3a86ff',
-                                                        color: 'white',
-                                                        borderRadius: '50%',
-                                                        width: '20px',
-                                                        height: '20px',
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleEdit(recipe.id);
+                                                    }}
+                                                    style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: '0.7rem',
-                                                        fontWeight: 'bold'
-                                                    }}>{i + 1}</span>
-                                                    {step}
-                                                </li>
-                                            ))}
-                                        </ol>
+                                                        gap: '5px',
+                                                        padding: '8px 12px',
+                                                        width: '100%',
+                                                        border: 'none',
+                                                        background: 'none',
+                                                        cursor: 'pointer',
+                                                        color: '#333'
+                                                    }}
+                                                >
+                                                    <FaEdit /> Edit
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(recipe.id);
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                        padding: '8px 12px',
+                                                        width: '100%',
+                                                        border: 'none',
+                                                        background: 'none',
+                                                        cursor: 'pointer',
+                                                        color: '#ff4444'
+                                                    }}
+                                                >
+                                                    <FaTrash /> Delete
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ))}
                 </div>
-                
-                <style>{`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                `}</style>
             </div>
         </div>
     );

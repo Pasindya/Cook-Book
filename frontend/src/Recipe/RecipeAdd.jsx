@@ -4,6 +4,7 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { FaClock, FaUtensils, FaListUl, FaLayerGroup } from 'react-icons/fa';
 import { GiCook } from 'react-icons/gi';
+import { toast } from 'react-hot-toast';
 
 function RecipeAdd() {
   const navigate = useNavigate();
@@ -58,35 +59,39 @@ function RecipeAdd() {
     setError(null);
 
     try {
-      let imageName = '';
+      const formData = new FormData();
+      formData.append('title', recipe.title);
+      formData.append('description', recipe.description);
+      formData.append('ingredients', recipe.ingredients);
+      formData.append('steps', recipe.steps);
+      formData.append('time', recipe.time);
+      formData.append('type', recipe.type);
+      formData.append('category', recipe.category);
+      
       if (recipe.recipeImage) {
-        const formData = new FormData();
-        formData.append("file", recipe.recipeImage);
-
-        const res = await axios.post(
-          "http://localhost:8080/recipes/recipeImg", 
-          formData, 
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        imageName = res.data;
+        formData.append('recipeImage', recipe.recipeImage);
       }
 
-      const recipeData = { 
-        ...recipe, 
-        recipeImage: imageName 
-      };
-      
-      await axios.post(
-        "http://localhost:8080/recipes", 
-        recipeData, 
-        { headers: { 'Content-Type': 'application/json' } }
+      const response = await axios.post(
+        "http://localhost:8080/api/recipes", 
+        formData,
+        { 
+          headers: { 
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
       
-      alert("Recipe added successfully!");
-      navigate('/displayrecipe');
+      if (response.status === 200 || response.status === 201) {
+        toast.success("Recipe added successfully!");
+        navigate('/displayrecipe');
+      } else {
+        throw new Error('Failed to add recipe');
+      }
     } catch (err) {
       console.error("Error:", err);
-      setError(err.response?.data?.message || "Error saving recipe. Please try again.");
+      setError(err.response?.data?.error || "Error saving recipe. Please try again.");
+      toast.error("Failed to add recipe. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
