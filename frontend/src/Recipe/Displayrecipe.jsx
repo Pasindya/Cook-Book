@@ -8,7 +8,8 @@ import {
   FaBookmark, FaFireAlt, FaLeaf, FaBreadSlice,
   FaEdit, FaTrash, FaComment, FaUser,
   FaStar, FaRegStar, FaThumbsUp, FaRegThumbsUp,
-  FaCamera, FaMapMarkerAlt, FaUserFriends, FaBookOpen
+  FaCamera, FaMapMarkerAlt, FaUserFriends, FaBookOpen,
+  FaStarHalfAlt
 } from 'react-icons/fa';
 import { GiMeal, GiFruitBowl, GiChickenOven } from 'react-icons/gi';
 import { toast, ToastContainer } from 'react-toastify';
@@ -130,7 +131,7 @@ function DisplayRecipe() {
 
     const toggleReviewInput = (recipeId) => {
         setShowReviewInput(showReviewInput === recipeId ? null : recipeId);
-        setShowCommentInput(null);
+        setNewReview({ rating: 0, text: '' });
     };
 
     const handleCommentSubmit = (recipeId) => {
@@ -142,16 +143,28 @@ function DisplayRecipe() {
         setShowCommentInput(null);
     };
 
-    const handleReviewSubmit = (recipeId) => {
-        if (!newReview.text.trim() || newReview.rating === 0) {
-            toast.error('Please add both a rating and review text');
-            return;
+    const handleReviewSubmit = async (recipeId) => {
+        try {
+            if (!newReview.rating || !newReview.text.trim()) {
+                toast.error('Please provide both rating and review text');
+                return;
+            }
+
+            const response = await axios.post(`http://localhost:8080/api/recipes/${recipeId}/reviews`, {
+                rating: newReview.rating,
+                text: newReview.text
+            });
+
+            if (response.data) {
+                toast.success('Review submitted successfully!');
+                setShowReviewInput(null);
+                setNewReview({ rating: 0, text: '' });
+                loadRecipes(); // Reload recipes to update the review
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            toast.error('Failed to submit review');
         }
-        
-        // Here you would typically send the review to your backend
-        toast.success(`Review submitted! Rating: ${newReview.rating}, Text: ${newReview.text}`);
-        setNewReview({ rating: 0, text: '' });
-        setShowReviewInput(null);
     };
 
     const formatTime = (minutes) => {
@@ -444,6 +457,13 @@ function DisplayRecipe() {
                                         <span>{recipe.comments?.length || 0}</span>
                                     </button>
                                     <button 
+                                        onClick={() => toggleReviewInput(recipe.id)}
+                                        className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
+                                    >
+                                        <FaStar />
+                                        <span>{recipe.reviews?.length || 0}</span>
+                                    </button>
+                                    <button 
                                         onClick={() => shareRecipe(recipe)}
                                         className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
@@ -483,6 +503,47 @@ function DisplayRecipe() {
                                                 className="px-4 py-2 bg-rose-300 text-gray-800 rounded-lg hover:bg-rose-400 transition-colors"
                                             >
                                                 Post Comment
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Review Input Section */}
+                                {showReviewInput === recipe.id && (
+                                    <div className="mt-4 p-4 bg-rose-50 rounded-lg">
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                                            <div className="flex space-x-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                                                        className="text-2xl text-gray-400 hover:text-rose-400 transition-colors"
+                                                    >
+                                                        {star <= newReview.rating ? <FaStar className="text-rose-400" /> : <FaRegStar />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <textarea
+                                            value={newReview.text}
+                                            onChange={(e) => setNewReview(prev => ({ ...prev, text: e.target.value }))}
+                                            placeholder="Write your review..."
+                                            className="w-full p-3 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                                            rows="3"
+                                        />
+                                        <div className="mt-3 flex justify-end space-x-3">
+                                            <button
+                                                onClick={() => setShowReviewInput(null)}
+                                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => handleReviewSubmit(recipe.id)}
+                                                className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                                            >
+                                                Submit Review
                                             </button>
                                         </div>
                                     </div>
