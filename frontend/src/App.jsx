@@ -9,11 +9,14 @@ import Challengers from './Challengers/Challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
 import UpdateChallenge from './Challengers/UpdateChallenge';
 
+
 import SocialFeed from './pages/SocialFeed';
 
 import Profile from './pages/Profile';
 import AllRecipes from './pages/AllRecipes';
 import AllChallengers from './Challengers/AllChallengers';
+
+import MyReminders from './pages/MyReminders';
 
 
 function App() {
@@ -35,6 +38,7 @@ function App() {
 
         <Route path="/profile" element={<Profile />} />
         <Route path="/all-recipes" element={<AllRecipes />} />
+         <Route path="/my" element={<MyReminders />} />
 
       </Routes>
     </>

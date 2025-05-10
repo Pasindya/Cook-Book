@@ -13,6 +13,7 @@ import {
 import { GiMeal, GiFruitBowl, GiChickenOven } from 'react-icons/gi';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ReminderModal from '../components/ReminderModal';
 
 function AllChallengers() {
     const [challenges, setChallenges] = useState([]);
@@ -41,6 +42,10 @@ function AllChallengers() {
         email: '',
         reason: ''
     });
+
+    const [allRemindersModal, setAllRemindersModal] = useState(false);
+    const [allReminders, setAllReminders] = useState([]);
+    const [allRemindersChallenge, setAllRemindersChallenge] = useState(null);
 
     const navigate = useNavigate();
 
@@ -184,7 +189,7 @@ function AllChallengers() {
     };
     
     const toggleParticipants = (challengeId) => {
-        setShowParticipants(showParticipants === challenge.id ? null : challenge.id);
+        setShowParticipants(showParticipants === challengeId ? null : challengeId);
     };
 
     const handleDelete = async (challengeId) => {
@@ -269,7 +274,6 @@ function AllChallengers() {
         navigate(`/updatechallenge/${challengeId}`);
     };
     
-
     const handleJoinClick = (challenge) => {
         setSelectedChallenge(challenge);
         setShowJoinModal(true);
@@ -325,6 +329,13 @@ function AllChallengers() {
         }
     };
 
+    const showAllRemindersForChallenge = async (challengeId) => {
+        const res = await fetch(`http://localhost:8080/api/reminders`);
+        const data = await res.json();
+        setAllReminders(data.filter(r => r.challengeId === challengeId));
+        setAllRemindersChallenge(challengeId);
+        setAllRemindersModal(true);
+    };
 
     const renderChallengeSection = (title, challenges, icon, color) => {
         if (challenges.length === 0) return null;
@@ -403,6 +414,9 @@ function AllChallengers() {
                             showParticipants={showParticipants}
                             toggleParticipants={toggleParticipants}
                             handleJoinClick={handleJoinClick}
+                            showAllRemindersForChallenge={showAllRemindersForChallenge}
+                            allRemindersModal={allRemindersModal}
+                            allRemindersChallenge={allRemindersChallenge}
                         />
                     ))}
                 </div>
@@ -577,11 +591,7 @@ function AllChallengers() {
                                         alignItems: 'center',
                                         gap: '12px',
                                         transition: 'all 0.3s ease',
-                                        boxShadow: '0 4px 15px rgba(255,107,107,0.3)',
-                                        ':hover': {
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: '0 6px 20px rgba(255,107,107,0.4)'
-                                        }
+                                        boxShadow: '0 4px 15px rgba(255,107,107,0.3)'
                                     }}
                                 >
                                     <FaFireAlt style={{ fontSize: '1.2rem' }} /> Create Competition
@@ -864,7 +874,6 @@ function AllChallengers() {
                     </div>
                 )}
                 
-
                 {/* Join Challenge Modal */}
                 {showJoinModal && selectedChallenge && (
                     <div style={{
@@ -1078,6 +1087,24 @@ function AllChallengers() {
                     </div>
                 )}
                 
+                {/* All Reminders Modal */}
+                {allRemindersModal && (
+                    <div className="modal" style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                    }}>
+                        <div style={{ background: '#fff', padding: 32, borderRadius: 12, minWidth: 320 }}>
+                            <h3 style={{ marginBottom: 16 }}>All Reminders for Challenge {allRemindersChallenge}</h3>
+                            <ul>
+                                {allReminders.length === 0 && <li>No reminders set for this challenge.</li>}
+                                {allReminders.map((rem, idx) => (
+                                    <li key={rem.id || idx}>{new Date(rem.remindAt).toLocaleString()} (User: {rem.userId})</li>
+                                ))}
+                            </ul>
+                            <button onClick={() => setAllRemindersModal(false)} style={{ marginTop: 16, padding: '8px 16px' }}>Close</button>
+                        </div>
+                    </div>
+                )}
 
                 <style>{`
                     @keyframes spin {
@@ -1098,6 +1125,7 @@ function AllChallengers() {
     );
 }
 
+// Challenge Card Component
 const ChallengeCard = ({
     challenge,
     expandedChallenges,
@@ -1124,9 +1152,83 @@ const ChallengeCard = ({
     participants,
     showParticipants,
     toggleParticipants,
-    handleJoinClick
+    handleJoinClick,
+    showAllRemindersForChallenge,
+    allRemindersModal,
+    allRemindersChallenge
 }) => {
     const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
+    const [reminderOpen, setReminderOpen] = useState(false);
+    const [reminders, setReminders] = useState([]);
+    const userId = 1; // TODO: Replace with actual logged-in user ID
+
+    
+ const handleSetReminder = async ({ userId, challengeId, remindAt }) => {
+    try {
+        console.log('Posting reminder to:', 'http://localhost:8080/api/reminders');
+        
+        // Format the date properly for backend
+        const formattedDate = new Date(remindAt).toISOString();
+        
+        const response = await fetch('http://localhost:8080/api/reminders', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                userId: Number(userId), 
+                challengeId: Number(challengeId), 
+                remindAt: formattedDate 
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to set reminder: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Reminder created successfully:', data);
+        
+        // Return the created reminder for notification
+        return data;
+    } catch (e) {
+        console.error("Error setting reminder:", e);
+        toast.error(`Failed to set reminder: ${e.message}`);
+        throw e;
+    }
+};
+
+
+
+    const fetchReminders = async () => {
+        try {
+            const res = await fetch(`http://localhost:8080/api/reminders/user/${userId}`);
+            const data = await res.json();
+            // Filter reminders for this challenge
+            setReminders(data.filter(r => r.challengeId === challenge.id));
+        } catch (e) {
+            setReminders([]);
+        }
+    };
+
+    const openReminderModal = () => {
+        fetchReminders();
+        setReminderOpen(true);
+    };
+
+    const handleDeleteReminder = async (reminderId) => {
+        await fetch(`http://localhost:8080/api/reminders/${reminderId}`, { method: "DELETE" });
+        fetchReminders();
+    };
+
+    const handleEditReminder = async (reminderId, updated) => {
+        await fetch(`http://localhost:8080/api/reminders/${reminderId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...reminders.find(r => r.id === reminderId), ...updated })
+        });
+        fetchReminders();
+    };
 
     return (
         <div 
@@ -1424,8 +1526,10 @@ const ChallengeCard = ({
                 <div style={{
                     display: 'flex',
                     gap: '12px',
-                    marginBottom: '20px'
+                    marginBottom: '20px',
+                    flexWrap: 'wrap'
                 }}>
+                    {/* Like Button */}
                     <button 
                         onClick={() => toggleLike(challenge.id)}
                         style={{
@@ -1451,7 +1555,7 @@ const ChallengeCard = ({
                         }
                         <span>Like</span>
                     </button>
-                    
+                    {/* Join Challenge Button */}
                     <button 
                         onClick={() => handleJoinClick(challenge)}
                         style={{
@@ -1476,7 +1580,53 @@ const ChallengeCard = ({
                         <FaUsers />
                         <span>{isParticipant ? 'Joined' : 'Join Challenge'}</span>
                     </button>
-                    
+                    {/* Set Reminder Button */}
+                    <button
+                        onClick={openReminderModal}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#fff',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: '#ffb703',
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        <FaClock />
+                        <span>Set Reminder</span>
+                    </button>
+                    {/* Show All Reminders Button */}
+                    <button
+                        onClick={() => showAllRemindersForChallenge(challenge.id)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#fff',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: '#3a86ff',
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        <FaClock />
+                        <span>Show All Reminders</span>
+                    </button>
+                    {/* Save Button */}
                     <button 
                         onClick={() => toggleSave(challenge.id)}
                         style={{
@@ -1653,8 +1803,18 @@ const ChallengeCard = ({
                 )}
 
             </div>
+            <ReminderModal
+                open={reminderOpen}
+                onClose={() => setReminderOpen(false)}
+                onSet={handleSetReminder}
+                challengeId={challenge.id}
+                userId={userId}
+                reminders={reminders}
+                onDelete={handleDeleteReminder}
+                onEdit={handleEditReminder}
+            />
         </div>
     );
 };
 
-export default AllChallengers; 
+export default AllChallengers;
