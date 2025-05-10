@@ -19,7 +19,21 @@ import {
   FaMapMarkerAlt,
   FaBookOpen,
   FaStar,
-  FaRegStar
+  FaRegStar,
+  FaSort,
+  FaSortAmountDown,
+  FaSortAmountUp,
+  FaShoppingCart,
+  FaUsers,
+  FaRegThumbsUp,
+  FaThumbsUp,
+  FaShare,
+  FaEllipsisH,
+  FaThLarge,
+  FaList,
+  FaSun,
+  FaMoon,
+  FaTimes
 } from 'react-icons/fa';
 import { GiMeal, GiFruitBowl, GiChickenOven, GiCook } from 'react-icons/gi';
 import { motion } from 'framer-motion';
@@ -42,6 +56,18 @@ function AllRecipes() {
     time: null,
     difficulty: null
   });
+  const [sortBy, setSortBy] = useState('newest');
+  const [viewMode, setViewMode] = useState('grid');
+  const [showCookMode, setShowCookMode] = useState(null);
+  const [shoppingList, setShoppingList] = useState([]);
+  const [recipeCollections, setRecipeCollections] = useState({});
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [selectedRecipeForCollection, setSelectedRecipeForCollection] = useState(null);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  const [selectedRecipeForShare, setSelectedRecipeForShare] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     loadRecipes();
@@ -154,8 +180,72 @@ function AllRecipes() {
     return matchesSearch && matchesType;
   });
 
+  const sortRecipes = (recipes) => {
+    switch (sortBy) {
+      case 'newest':
+        return [...recipes].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      case 'oldest':
+        return [...recipes].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      case 'popular':
+        return [...recipes].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      case 'timeAsc':
+        return [...recipes].sort((a, b) => (a.time || 0) - (b.time || 0));
+      case 'timeDesc':
+        return [...recipes].sort((a, b) => (b.time || 0) - (a.time || 0));
+      default:
+        return recipes;
+    }
+  };
+
+  const addToShoppingList = (recipe) => {
+    const ingredients = recipe.ingredients.split('\n').map(ing => ing.trim());
+    setShoppingList(prev => [...prev, ...ingredients]);
+    toast.success('Ingredients added to shopping list!');
+  };
+
+  const toggleCookMode = (recipeId) => {
+    setShowCookMode(showCookMode === recipeId ? null : recipeId);
+  };
+
+  const createCollection = () => {
+    if (!newCollectionName.trim()) return;
+    
+    setRecipeCollections(prev => ({
+      ...prev,
+      [newCollectionName]: [...(prev[newCollectionName] || []), selectedRecipeForCollection]
+    }));
+    
+    setNewCollectionName('');
+    setShowCollectionModal(false);
+    setSelectedRecipeForCollection(null);
+    toast.success(`Recipe added to "${newCollectionName}" collection!`);
+  };
+
+  const shareRecipeWithMessage = async (recipe) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: recipe.title,
+          text: shareMessage || `Check out this delicious ${recipe.type} recipe!`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(
+          `${recipe.title}\n${shareMessage}\n${window.location.href}`
+        );
+        toast.info('Recipe link copied to clipboard!');
+      }
+      setShowShareModal(false);
+      setShareMessage('');
+      setSelectedRecipeForShare(null);
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share recipe');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-rose-50">
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-rose-50'}`}>
       <Navbar />
       
       {/* Hero Section with Parallax Effect */}
@@ -206,9 +296,51 @@ function AllRecipes() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-12 -mt-16 relative z-10">
-        {/* Quick Filters */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
-          <div className="flex flex-wrap items-center gap-4">
+        {/* Advanced Controls */}
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 mb-8`}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* View Toggle */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-rose-500 text-white' : 'bg-gray-100'}`}
+              >
+                <FaThLarge />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-rose-500 text-white' : 'bg-gray-100'}`}
+              >
+                <FaList />
+              </button>
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center space-x-4">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className={`p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="popular">Most Popular</option>
+                <option value="timeAsc">Quickest First</option>
+                <option value="timeDesc">Longest First</option>
+              </select>
+            </div>
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+            >
+              {darkMode ? <FaSun /> : <FaMoon />}
+            </button>
+          </div>
+
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-4 mt-4">
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center space-x-2 px-6 py-3 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors shadow-md"
@@ -301,18 +433,20 @@ function AllRecipes() {
           )}
         </div>
 
-        {/* Recipe Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredRecipes.map(recipe => (
+        {/* Recipe Grid/List */}
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' : 'space-y-6'}>
+          {sortRecipes(filteredRecipes).map(recipe => (
             <motion.div
               key={recipe.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -5 }}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+              className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 ${
+                viewMode === 'list' ? 'flex' : ''
+              }`}
             >
-              {/* Recipe Image with Overlay */}
-              <div className="relative group">
+              {/* Recipe Image */}
+              <div className={`relative group ${viewMode === 'list' ? 'w-1/3' : ''}`}>
                 <img
                   src={getImageUrl(recipe.recipeImage)}
                   alt={recipe.title}
@@ -341,10 +475,17 @@ function AllRecipes() {
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg transform group-hover:scale-110 transition-transform duration-300">
                   {getTypeIcon(recipe.type)}
                 </div>
+                <button
+                  onClick={() => toggleCookMode(recipe.id)}
+                  className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
+                >
+                  <FaUtensils className="inline-block mr-2" />
+                  Cook Mode
+                </button>
               </div>
 
               {/* Recipe Content */}
-              <div className="p-6">
+              <div className={`p-6 ${viewMode === 'list' ? 'flex-1' : ''}`}>
                 {/* Author Info */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -402,11 +543,14 @@ function AllRecipes() {
                       <span className="group-hover:text-rose-500">{comments[recipe.id]?.length || 0}</span>
                     </button>
                     <button 
-                      onClick={() => shareRecipe(recipe)}
-                      className="flex items-center space-x-2 text-gray-500 hover:text-rose-500 transition-colors group"
+                      onClick={() => {
+                        setSelectedRecipeForShare(recipe);
+                        setShowShareModal(true);
+                      }}
+                      className="text-gray-500 hover:text-rose-500 transition-colors"
+                      title="Share Recipe"
                     >
-                      <FaShareAlt className="transform group-hover:scale-110 transition-transform" />
-                      <span className="group-hover:text-rose-500">Share</span>
+                      <FaShare />
                     </button>
                   </div>
                   <button 
@@ -421,68 +565,135 @@ function AllRecipes() {
                   </button>
                 </div>
 
-                {/* Comments Section */}
-                {showCommentInput === recipe.id && (
-                  <motion.div 
+                {/* Advanced Actions */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => addToShoppingList(recipe)}
+                      className="text-gray-500 hover:text-rose-500 transition-colors"
+                      title="Add to Shopping List"
+                    >
+                      <FaShoppingCart />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedRecipeForCollection(recipe);
+                        setShowCollectionModal(true);
+                      }}
+                      className="text-gray-500 hover:text-rose-500 transition-colors"
+                      title="Add to Collection"
+                    >
+                      <FaBookmark />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Cook Mode Panel */}
+                {showCookMode === recipe.id && (
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-4"
+                    className="mt-4 p-4 bg-gray-50 rounded-lg"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
-                        <FaUser className="text-rose-500" />
-                      </div>
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Share your thoughts..."
-                        className="flex-1 p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
-                        rows="2"
-                      />
-                    </div>
-                    <div className="flex justify-end mt-3">
-                      <button
-                        onClick={() => handleCommentSubmit(recipe.id)}
-                        className="px-6 py-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                      >
-                        Post Comment
-                      </button>
-                    </div>
+                    <h4 className="font-semibold mb-2">Cooking Steps</h4>
+                    <ol className="list-decimal list-inside space-y-2">
+                      {recipe.steps.split('\n').map((step, index) => (
+                        <li key={index} className="text-gray-600">{step}</li>
+                      ))}
+                    </ol>
                   </motion.div>
-                )}
-
-                {/* Display Comments */}
-                {comments[recipe.id]?.length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    {comments[recipe.id].map(comment => (
-                      <motion.div 
-                        key={comment.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex space-x-3"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
-                          <FaUser className="text-rose-500" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
-                            <p className="font-semibold text-gray-800">{comment.user}</p>
-                            <p className="text-gray-600 mt-1">{comment.text}</p>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1.5">
-                            {new Date(comment.timestamp).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
                 )}
               </div>
             </motion.div>
           ))}
         </div>
       </div>
+
+      {/* Collection Modal */}
+      {showCollectionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Add to Collection</h3>
+            <input
+              type="text"
+              value={newCollectionName}
+              onChange={(e) => setNewCollectionName(e.target.value)}
+              placeholder="New collection name"
+              className="w-full p-2 border rounded-lg mb-4"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowCollectionModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createCollection}
+                className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600"
+              >
+                Create Collection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Share Recipe</h3>
+            <textarea
+              value={shareMessage}
+              onChange={(e) => setShareMessage(e.target.value)}
+              placeholder="Add a message (optional)"
+              className="w-full p-2 border rounded-lg mb-4 h-24"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => shareRecipeWithMessage(selectedRecipeForShare)}
+                className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600"
+              >
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shopping List Sidebar */}
+      {shoppingList.length > 0 && (
+        <div className="fixed right-4 bottom-4 bg-white rounded-xl shadow-xl p-4 w-80">
+          <h3 className="font-semibold mb-2">Shopping List</h3>
+          <ul className="space-y-2 max-h-60 overflow-y-auto">
+            {shoppingList.map((item, index) => (
+              <li key={index} className="flex items-center justify-between">
+                <span>{item}</span>
+                <button
+                  onClick={() => setShoppingList(prev => prev.filter((_, i) => i !== index))}
+                  className="text-red-500 hover:text-red-600"
+                >
+                  <FaTimes />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setShoppingList([])}
+            className="w-full mt-2 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600"
+          >
+            Clear List
+          </button>
+        </div>
+      )}
     </div>
   );
 }
