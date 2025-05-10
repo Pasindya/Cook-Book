@@ -33,7 +33,7 @@ function Navbar() {
   }, []);
 
   const navLinks = [
-    { path: "/displayrecipe", icon: <MdExplore />, label: "Explore" },
+    { path: "/all-recipes", icon: <MdExplore />, label: "Explore" },
     { path: "/challengers", icon: <FaTrophy />, label: "Challenges" },
     { path: "/community", icon: <RiLiveLine />, label: "Live" },
     { path: "/groups", icon: <FaUsers />, label: "Groups" }
@@ -281,7 +281,7 @@ function Navbar() {
                 <Link to="/profile" style={styles.dropdownItem}>
                   <span>My Profile</span>
                 </Link>
-                <Link to="/my-recipes" style={styles.dropdownItem}>
+                <Link to="/displayrecipe" style={styles.dropdownItem}>
                   <span>My Recipes</span>
                 </Link>
                 <Link to="/saved" style={styles.dropdownItem}>
@@ -290,8 +290,8 @@ function Navbar() {
                 
                 <div style={styles.dropdownDivider}></div>
                 
-                <Link to="/settings" style={styles.dropdownItem}>
-                  <span>Settings</span>
+                <Link to="/displaychallengers" style={styles.dropdownItem}>
+                  <span>My Challengers</span>
                 </Link>
                 
                 <div style={styles.dropdownDivider}></div>
