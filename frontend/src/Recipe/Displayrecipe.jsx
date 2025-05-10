@@ -272,6 +272,28 @@ function DisplayRecipe() {
         }
     };
 
+    // Add helper to calculate average and breakdown
+    const getReviewStats = (reviewsArr) => {
+        if (!reviewsArr || reviewsArr.length === 0) {
+            return {
+                avg: null,
+                count: 0,
+                breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            };
+        }
+        const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        let sum = 0;
+        reviewsArr.forEach(r => {
+            breakdown[r.rating] = (breakdown[r.rating] || 0) + 1;
+            sum += r.rating;
+        });
+        return {
+            avg: (sum / reviewsArr.length).toFixed(1),
+            count: reviewsArr.length,
+            breakdown
+        };
+    };
+
     if (loading) {
         return (
             <div style={{
@@ -595,6 +617,45 @@ function DisplayRecipe() {
                                 )}
 
                                 {reviews[recipe.id] && (
+                                    <div className="mt-4 mb-4 p-4 bg-white rounded shadow-sm">
+                                        <div className="mb-2 font-bold text-lg flex items-center text-yellow-500">
+                                            <FaStar className="mr-1" /> Reviews
+                                        </div>
+                                        {(() => {
+                                            const stats = getReviewStats(reviews[recipe.id]);
+                                            return (
+                                                <div className="flex flex-col md:flex-row md:items-center md:space-x-8">
+                                                    <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+                                                        <div className="flex items-center">
+                                                            <span className="text-4xl font-bold text-yellow-500 mr-2">{stats.avg ? stats.avg : 'N/A'}</span>
+                                                            <div className="flex">
+                                                                {[1,2,3,4,5].map(star => (
+                                                                    <span key={star}>
+                                                                        {stats.avg && star <= Math.round(stats.avg) ? <FaStar className="text-yellow-400 text-2xl" /> : <FaRegStar className="text-yellow-300 text-2xl" />}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-gray-600 text-sm mt-1">{stats.count} review{stats.count !== 1 ? 's' : ''}</div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        {[5,4,3,2,1].map(star => (
+                                                            <div key={star} className="flex items-center text-sm mb-1">
+                                                                <span className="w-10 text-gray-600">{star} star</span>
+                                                                <div className="flex-1 bg-gray-200 rounded h-2 mx-2">
+                                                                    <div style={{ width: stats.count ? `${(stats.breakdown[star] / stats.count) * 100}%` : '0%' }} className={`bg-yellow-400 h-2 rounded`}></div>
+                                                                </div>
+                                                                <span className="w-4 text-gray-600">{stats.breakdown[star]}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+
+                                {reviews[recipe.id] && (
                                     <div className="mt-4">
                                         <h4 className="font-semibold mb-2">Reviews:</h4>
                                         {reviewLoading[recipe.id] ? (
@@ -612,13 +673,13 @@ function DisplayRecipe() {
                                                     </div>
                                                     <div className="flex items-center text-xs text-gray-400">
                                                         <span>User: {review.userId}</span>
-                                                        {/* Show edit/delete if user is owner (replace 'demoUser' with real userId) */}
-                                                        {review.userId === 'demoUser' && (
-                                                            <>
+                                                        {/* Show Edit only for demoUser, but Delete for all */}
+                                                        <>
+                                                            {review.userId === 'demoUser' && (
                                                                 <button onClick={() => handleEditReview(recipe.id, review)} className="ml-2 text-blue-500">Edit</button>
-                                                                <button onClick={() => handleDeleteReview(recipe.id, review.id)} className="ml-2 text-red-500">Delete</button>
-                                                            </>
-                                                        )}
+                                                            )}
+                                                            <button onClick={() => handleDeleteReview(recipe.id, review.id)} className="ml-2 text-red-500">Delete</button>
+                                                        </>
                                                     </div>
                                                 </div>
                                             ))
