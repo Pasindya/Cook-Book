@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Navbar from '../components/Navbar';
 
 function AddChallengers() {
   const [formData, setFormData] = useState({
@@ -85,6 +86,8 @@ function AddChallengers() {
   };
 
   return (
+    <div>
+      <Navbar />
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-amber-50 py-8 px-4">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Form Header */}
@@ -263,6 +266,7 @@ function AddChallengers() {
             <button
               type="submit"
               disabled={isSubmitting}
+              onClick={() => navigate('/displaychallengers')}
               className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-lg shadow-md hover:from-amber-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
@@ -285,6 +289,7 @@ function AddChallengers() {
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 }

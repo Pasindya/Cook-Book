@@ -184,9 +184,7 @@ function AllChallengers() {
     };
     
     const toggleParticipants = (challengeId) => {
-
         setShowParticipants(showParticipants === challenge.id ? null : challenge.id);
-
     };
 
     const handleDelete = async (challengeId) => {
@@ -388,8 +386,6 @@ function AllChallengers() {
                             toggleLike={toggleLike}
                             showMenu={showMenu}
                             toggleMenu={toggleMenu}
-                            handleDelete={handleDelete}
-                            handleUpdate={handleUpdate}
                             showCommentInput={showCommentInput}
                             toggleCommentInput={toggleCommentInput}
                             showReviewInput={showReviewInput}
@@ -406,10 +402,7 @@ function AllChallengers() {
                             participants={participants[challenge.id] || []}
                             showParticipants={showParticipants}
                             toggleParticipants={toggleParticipants}
-
                             handleJoinClick={handleJoinClick}
-
-
                         />
                     ))}
                 </div>
@@ -968,8 +961,6 @@ const ChallengeCard = ({
     toggleLike,
     showMenu,
     toggleMenu,
-    handleDelete,
-    handleUpdate,
     showCommentInput,
     toggleCommentInput,
     showReviewInput,
@@ -986,9 +977,7 @@ const ChallengeCard = ({
     participants,
     showParticipants,
     toggleParticipants,
-
     handleJoinClick
-
 }) => {
     const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
 
@@ -1009,103 +998,11 @@ const ChallengeCard = ({
                 position: 'absolute',
                 top: '20px',
                 right: '20px',
-                zIndex: '2',
-                display: 'flex',
-                gap: '10px'
+                zIndex: '2'
             }}>
                 {getStatusBadge(challenge.startDate, challenge.endDate)}
-                
-                {/* Three-dot Menu Button */}
-                <div style={{ position: 'relative' }}>
-                    <button
-                        onClick={(e) => toggleMenu(challenge.id, e)}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.9)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <FaEllipsisH style={{ color: '#666' }} />
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {showMenu === challenge.id && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '40px',
-                            right: '0',
-                            background: 'white',
-                            borderRadius: '12px',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
-                            padding: '8px 0',
-                            minWidth: '180px',
-                            zIndex: '1000',
-                            animation: 'slideIn 0.2s ease'
-                        }}>
-                            <button
-                                onClick={() => {
-                                    handleUpdate(challenge.id);
-                                    setShowMenu(null);
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '12px 16px',
-                                    width: '100%',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: '#333',
-                                    fontSize: '0.95rem',
-                                    transition: 'all 0.2s ease',
-                                    ':hover': {
-                                        background: '#f8f9fa'
-                                    }
-                                }}
-                            >
-                                <FaEdit style={{ color: '#4CAF50' }} />
-                                <span>Edit Challenge</span>
-                            </button>
-                            
-                            <button
-                                onClick={() => {
-                                    handleDelete(challenge.id);
-                                    setShowMenu(null);
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '12px 16px',
-                                    width: '100%',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: '#333',
-                                    fontSize: '0.95rem',
-                                    transition: 'all 0.2s ease',
-                                    ':hover': {
-                                        background: '#f8f9fa'
-                                    }
-                                }}
-                            >
-                                <FaTrash style={{ color: '#ff6b6b' }} />
-                                <span>Delete Challenge</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
-            
+
             {/* Challenge Image */}
             <div style={{
                 width: '100%',
@@ -1409,7 +1306,6 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
-
                         onClick={() => handleJoinClick(challenge)}
                         style={{
                             display: 'flex',
@@ -1435,7 +1331,6 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
-
                         onClick={() => toggleSave(challenge.id)}
                         style={{
                             display: 'flex',

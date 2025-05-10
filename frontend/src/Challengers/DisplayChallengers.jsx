@@ -33,6 +33,7 @@ function DisplayChallengers() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [participants, setParticipants] = useState({});
     const [showParticipants, setShowParticipants] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -179,21 +180,30 @@ function DisplayChallengers() {
         setShowParticipants(showParticipants === challengeId ? null : challengeId);
     };
 
+    const handleUpdate = (challengeId) => {
+        setShowMenu(null); // Close the menu
+        navigate(`/updatechallenge/${challengeId}`);
+    };
+
     const handleDelete = async (challengeId) => {
-        if (window.confirm('Are you sure you want to delete this challenge? This action cannot be undone.')) {
-            try {
-                await axios.delete(`http://localhost:8080/api/challenges/${challengeId}`);
-                toast.success('Challenge deleted successfully');
-                // Remove the deleted challenge from the state
-                setChallenges(challenges.filter(challenge => challenge.id !== challengeId));
-                // Close the menu
-                setShowMenu(null);
-                // Reload challenges to update categories
-                loadChallenges();
-            } catch (error) {
-                console.error("Error deleting challenge:", error);
-                toast.error(error.response?.data || 'Failed to delete challenge');
-            }
+        try {
+            await axios.delete(`http://localhost:8080/api/challenges/${challengeId}`);
+            toast.success('Challenge deleted successfully');
+            
+            // Update all challenge lists
+            const updatedChallenges = challenges.filter(challenge => challenge.id !== challengeId);
+            setChallenges(updatedChallenges);
+            setFilteredChallenges(updatedChallenges);
+            
+            // Update categorized challenges
+            categorizeChallenges(updatedChallenges);
+            
+            // Close the delete confirmation modal and menu
+            setShowDeleteConfirm(null);
+            setShowMenu(null);
+        } catch (error) {
+            console.error("Error deleting challenge:", error);
+            toast.error(error.response?.data || 'Failed to delete challenge');
         }
     };
 
@@ -257,10 +267,6 @@ function DisplayChallengers() {
             .catch(() => toast.error('Failed to copy link'));
     };
 
-    const handleUpdate = (challengeId) => {
-        navigate(`/updatechallenge/${challengeId}`);
-    };
-    
     const handleJoinChallenge = async (challengeId) => {
         try {
             await axios.post(`http://localhost:8080/api/challenges/${challengeId}/join`);
@@ -337,8 +343,6 @@ function DisplayChallengers() {
                             toggleLike={toggleLike}
                             showMenu={showMenu}
                             toggleMenu={toggleMenu}
-                            handleDelete={handleDelete}
-                            handleUpdate={handleUpdate}
                             showCommentInput={showCommentInput}
                             toggleCommentInput={toggleCommentInput}
                             showReviewInput={showReviewInput}
@@ -356,6 +360,8 @@ function DisplayChallengers() {
                             showParticipants={showParticipants}
                             toggleParticipants={toggleParticipants}
                             handleJoinChallenge={handleJoinChallenge}
+                            onUpdate={handleUpdate}
+                            onDelete={handleDelete}
                         />
                     ))}
                 </div>
@@ -730,8 +736,6 @@ const ChallengeCard = ({
     toggleLike,
     showMenu,
     toggleMenu,
-    handleDelete,
-    handleUpdate,
     showCommentInput,
     toggleCommentInput,
     showReviewInput,
@@ -748,9 +752,24 @@ const ChallengeCard = ({
     participants,
     showParticipants,
     toggleParticipants,
-    handleJoinChallenge
+    handleJoinChallenge,
+    onUpdate,
+    onDelete
 }) => {
-    const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const handleEdit = () => {
+        onUpdate(challenge.id);
+    };
+
+    const handleDelete = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        onDelete(challenge.id);
+        setShowDeleteConfirm(false);
+    };
 
     return (
         <div 
@@ -764,6 +783,53 @@ const ChallengeCard = ({
             }}
             className="challenge-card"
         >
+            {/* Edit and Delete Buttons */}
+            <div style={{
+                position: 'absolute',
+                top: '15px',
+                left: '15px',
+                display: 'flex',
+                gap: '10px',
+                zIndex: 2
+            }}>
+                <button
+                    onClick={handleEdit}
+                    style={{
+                        background: 'rgba(255,255,255,0.9)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <FaEdit style={{ color: '#4CAF50' }} />
+                </button>
+                <button
+                    onClick={handleDelete}
+                    style={{
+                        background: 'rgba(255,255,255,0.9)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <FaTrash style={{ color: '#f44336' }} />
+                </button>
+            </div>
+
             {/* Status Badge */}
             <div style={{
                 position: 'absolute',
@@ -1103,6 +1169,66 @@ const ChallengeCard = ({
                     </button>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'white',
+                        padding: '30px',
+                        borderRadius: '15px',
+                        maxWidth: '400px',
+                        width: '90%',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{ marginBottom: '20px', color: '#333' }}>Delete Challenge</h3>
+                        <p style={{ marginBottom: '20px', color: '#666' }}>
+                            Are you sure you want to delete "{challenge.ChallengeTitle}"? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                style={{
+                                    padding: '10px 20px',
+                                    background: '#666',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                style={{
+                                    padding: '10px 20px',
+                                    background: '#f44336',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
