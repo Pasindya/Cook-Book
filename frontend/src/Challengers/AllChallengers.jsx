@@ -280,19 +280,50 @@ function AllChallengers() {
     const handleJoinSubmit = async (e) => {
         e.preventDefault();
         try {
+            // First, save the joined challenge to localStorage
+            const prevJoined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
+            const alreadyJoined = prevJoined.some(c => c.id === selectedChallenge.id);
+            
+            if (!alreadyJoined) {
+                const newJoined = [...prevJoined, selectedChallenge];
+                localStorage.setItem('joinedChallenges', JSON.stringify(newJoined));
+            }
+
+            // Then make the API call
             await axios.post(`http://localhost:8080/api/challenges/${selectedChallenge.id}/join`, joinFormData);
-            toast.success('Successfully joined the challenge!');
+            
+            // Show success message
+            toast.success('Successfully joined the challenge! Redirecting to your profile...', {
+                position: "top-center",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
+            // Close the modal and reset form
             setShowJoinModal(false);
             setJoinFormData({ name: '', email: '', reason: '' });
-            // Reload participants for this challenge
-            const response = await axios.get(`http://localhost:8080/api/challenges/${selectedChallenge.id}/participants`);
-            setParticipants(prev => ({
-                ...prev,
-                [selectedChallenge.id]: response.data
-            }));
+
+            // Navigate to profile page immediately
+            navigate('/profile', { 
+                state: { 
+                    activeTab: 'joinedChallenges',
+                    message: `You have successfully joined the "${selectedChallenge.ChallengeTitle}" challenge!`
+                }
+            });
+
         } catch (error) {
             console.error("Error joining challenge:", error);
-            toast.error(error.response?.data || 'Failed to join challenge');
+            toast.error(error.response?.data || 'Failed to join challenge', {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
         }
     };
 
