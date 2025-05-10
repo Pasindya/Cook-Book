@@ -8,6 +8,7 @@ import AddChallengers from './Challengers/AddChallengers';
 import Challengers from './Challengers/Challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
 import UpdateChallenge from './Challengers/UpdateChallenge';
+import SocialFeed from './pages/SocialFeed';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/addchallengers" element={<AddChallengers />} />
         <Route path="/displaychallengers" element={<DisplayChallengers />} />
         <Route path="/updatechallenge/:id" element={<UpdateChallenge />} />
+        <Route path="/social" element={<SocialFeed />} />
       </Routes>
     </>
   );

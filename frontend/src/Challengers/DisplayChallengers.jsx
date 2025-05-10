@@ -7,7 +7,8 @@ import {
   FaUtensils, FaEllipsisH, FaRegBookmark, 
   FaBookmark, FaFireAlt, FaLeaf, FaBreadSlice,
   FaEdit, FaTrash, FaComment, FaUser,
-  FaStar, FaRegStar, FaTrophy, FaCalendarAlt
+  FaStar, FaRegStar, FaTrophy, FaCalendarAlt,
+  FaSearch, FaFilter, FaUsers, FaAward
 } from 'react-icons/fa';
 import { GiMeal, GiFruitBowl, GiChickenOven } from 'react-icons/gi';
 import { toast, ToastContainer } from 'react-toastify';
@@ -15,6 +16,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function DisplayChallengers() {
     const [challenges, setChallenges] = useState([]);
+    const [filteredChallenges, setFilteredChallenges] = useState([]);
     const [upcomingChallenges, setUpcomingChallenges] = useState([]);
     const [activeChallenges, setActiveChallenges] = useState([]);
     const [pastChallenges, setPastChallenges] = useState([]);
@@ -27,6 +29,10 @@ function DisplayChallengers() {
     const [showReviewInput, setShowReviewInput] = useState(null);
     const [newComment, setNewComment] = useState('');
     const [newReview, setNewReview] = useState({ rating: 0, text: '' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeFilter, setActiveFilter] = useState('all');
+    const [participants, setParticipants] = useState({});
+    const [showParticipants, setShowParticipants] = useState(null);
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -38,6 +44,20 @@ function DisplayChallengers() {
         setSavedChallenges(saved);
         setLikedChallenges(liked);
     }, []);
+    
+    useEffect(() => {
+        if (searchTerm) {
+            const filtered = challenges.filter(challenge => 
+                challenge.ChallengeTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                challenge.challengeDetails.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setFilteredChallenges(filtered);
+            categorizeChallenges(filtered);
+        } else {
+            setFilteredChallenges(challenges);
+            categorizeChallenges(challenges);
+        }
+    }, [searchTerm, challenges]);
     
     const categorizeChallenges = (challenges) => {
         const today = new Date().toISOString().split('T')[0];
@@ -59,7 +79,7 @@ function DisplayChallengers() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                timeout: 5000 // 5 second timeout
+                timeout: 5000
             });
             
             if (!response.data) {
@@ -75,15 +95,32 @@ function DisplayChallengers() {
             }));
             
             setChallenges(formattedChallenges);
-            categorizeChallenges(formattedChallenges);
+            setFilteredChallenges(formattedChallenges);
             setLoading(false);
+            
+            // Load participants for each challenge
+            loadParticipants(formattedChallenges);
         } catch (error) {
             console.error("Error loading challenges:", error);
             toast.error('Failed to load challenges');
             setLoading(false);
         }
     };
-
+    
+    const loadParticipants = async (challenges) => {
+        const participantsData = {};
+        for (const challenge of challenges) {
+            try {
+                const response = await axios.get(`http://localhost:8080/api/challenges/${challenge.id}/participants`);
+                participantsData[challenge.id] = response.data || [];
+            } catch (error) {
+                console.error(`Error loading participants for challenge ${challenge.id}:`, error);
+                participantsData[challenge.id] = [];
+            }
+        }
+        setParticipants(participantsData);
+    };
+    
     const toggleExpand = (challengeId) => {
         setExpandedChallenge(expandedChallenge === challengeId ? null : challengeId);
     };
@@ -116,6 +153,10 @@ function DisplayChallengers() {
     const toggleMenu = (challengeId, e) => {
         e.stopPropagation();
         setShowMenu(showMenu === challengeId ? null : challengeId);
+    };
+    
+    const toggleParticipants = (challengeId) => {
+        setShowParticipants(showParticipants === challengeId ? null : challengeId);
     };
 
     const handleDelete = async (challengeId) => {
@@ -210,6 +251,21 @@ function DisplayChallengers() {
     const handleUpdate = (challengeId) => {
         navigate(`/updatechallenge/${challengeId}`);
     };
+    
+    const handleJoinChallenge = async (challengeId) => {
+        try {
+            // In a real app, you would send the current user's ID
+            await axios.post(`http://localhost:8080/api/challenges/${challengeId}/join`, {
+                userId: 'current-user-id' // Replace with actual user ID
+            });
+            toast.success('You have joined this challenge!');
+            // Refresh participants list
+            loadParticipants(challenges);
+        } catch (error) {
+            console.error('Error joining challenge:', error);
+            toast.error(error.response?.data || 'Failed to join challenge');
+        }
+    };
 
     const renderChallengeSection = (title, challenges, icon, color) => {
         if (challenges.length === 0) return null;
@@ -286,6 +342,10 @@ function DisplayChallengers() {
                             shareChallenge={shareChallenge}
                             formatDate={formatDate}
                             getStatusBadge={getStatusBadge}
+                            participants={participants[challenge.id] || []}
+                            showParticipants={showParticipants}
+                            toggleParticipants={toggleParticipants}
+                            handleJoinChallenge={handleJoinChallenge}
                         />
                     ))}
                 </div>
@@ -361,23 +421,253 @@ function DisplayChallengers() {
                     }}>Discover exciting cooking competitions and showcase your culinary skills</p>
                 </div>
                 
-                {renderChallengeSection("Active", activeChallenges, <FaFireAlt />, "#4CAF50")}
-                {renderChallengeSection("Upcoming", upcomingChallenges, <FaCalendarAlt />, "#2196F3")}
-                {renderChallengeSection("Past", pastChallenges, <FaTrophy />, "#9E9E9E")}
+                {/* Search and Filter Bar */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '30px',
+                    gap: '20px',
+                    flexWrap: 'wrap'
+                }}>
+                    <div style={{
+                        position: 'relative',
+                        flexGrow: '1',
+                        maxWidth: '500px'
+                    }}>
+                        <FaSearch style={{
+                            position: 'absolute',
+                            left: '15px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#999'
+                        }} />
+                        <input
+                            type="text"
+                            placeholder="Search challenges..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '12px 20px 12px 45px',
+                                borderRadius: '30px',
+                                border: '1px solid #ddd',
+                                fontSize: '1rem',
+                                outline: 'none',
+                                transition: 'all 0.3s ease',
+                                ':focus': {
+                                    borderColor: '#3a86ff',
+                                    boxShadow: '0 0 0 3px rgba(58, 134, 255, 0.2)'
+                                }
+                            }}
+                        />
+                    </div>
+                    
+                    <div style={{
+                        display: 'flex',
+                        gap: '10px',
+                        flexWrap: 'wrap'
+                    }}>
+                        <button 
+                            onClick={() => setActiveFilter('all')}
+                            style={{
+                                background: activeFilter === 'all' ? '#3a86ff' : '#fff',
+                                color: activeFilter === 'all' ? 'white' : '#333',
+                                border: '1px solid #ddd',
+                                padding: '10px 20px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: activeFilter === 'all' ? '#2a6fd6' : '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <FaFilter /> All Challenges
+                        </button>
+                        <button 
+                            onClick={() => setActiveFilter('active')}
+                            style={{
+                                background: activeFilter === 'active' ? '#4CAF50' : '#fff',
+                                color: activeFilter === 'active' ? 'white' : '#333',
+                                border: '1px solid #ddd',
+                                padding: '10px 20px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: activeFilter === 'active' ? '#3e8e41' : '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <FaFireAlt /> Active
+                        </button>
+                        <button 
+                            onClick={() => setActiveFilter('upcoming')}
+                            style={{
+                                background: activeFilter === 'upcoming' ? '#2196F3' : '#fff',
+                                color: activeFilter === 'upcoming' ? 'white' : '#333',
+                                border: '1px solid #ddd',
+                                padding: '10px 20px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: activeFilter === 'upcoming' ? '#0b7dda' : '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <FaCalendarAlt /> Upcoming
+                        </button>
+                        <button 
+                            onClick={() => setActiveFilter('past')}
+                            style={{
+                                background: activeFilter === 'past' ? '#9E9E9E' : '#fff',
+                                color: activeFilter === 'past' ? 'white' : '#333',
+                                border: '1px solid #ddd',
+                                padding: '10px 20px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: activeFilter === 'past' ? '#757575' : '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <FaTrophy /> Past
+                        </button>
+                        <button 
+                            onClick={() => setActiveFilter('saved')}
+                            style={{
+                                background: activeFilter === 'saved' ? '#FFA500' : '#fff',
+                                color: activeFilter === 'saved' ? 'white' : '#333',
+                                border: '1px solid #ddd',
+                                padding: '10px 20px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: activeFilter === 'saved' ? '#e69500' : '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <FaBookmark /> Saved
+                        </button>
+                    </div>
+                </div>
                 
-                {challenges.length === 0 && !loading && (
+                {/* Create Challenge Button */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    marginBottom: '30px'
+                }}>
+                    <button 
+                        onClick={() => navigate('/addchallengers')}
+                        style={{
+                            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 25px',
+                            borderRadius: '30px',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 4px 15px rgba(255,107,107,0.3)',
+                            ':hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 20px rgba(255,107,107,0.4)'
+                            }
+                        }}
+                    >
+                        <FaFireAlt /> Create New Challenge
+                    </button>
+                </div>
+                
+                {/* Render appropriate challenges based on filter */}
+                {activeFilter === 'all' && (
+                    <>
+                        {renderChallengeSection("Active", activeChallenges, <FaFireAlt />, "#4CAF50")}
+                        {renderChallengeSection("Upcoming", upcomingChallenges, <FaCalendarAlt />, "#2196F3")}
+                        {renderChallengeSection("Past", pastChallenges, <FaTrophy />, "#9E9E9E")}
+                    </>
+                )}
+                {activeFilter === 'active' && renderChallengeSection("Active", activeChallenges, <FaFireAlt />, "#4CAF50")}
+                {activeFilter === 'upcoming' && renderChallengeSection("Upcoming", upcomingChallenges, <FaCalendarAlt />, "#2196F3")}
+                {activeFilter === 'past' && renderChallengeSection("Past", pastChallenges, <FaTrophy />, "#9E9E9E")}
+                {activeFilter === 'saved' && renderChallengeSection("Saved", 
+                    filteredChallenges.filter(challenge => savedChallenges.includes(challenge.id)), 
+                    <FaBookmark />, "#FFA500"
+                )}
+                
+                {filteredChallenges.length === 0 && !loading && (
                     <div style={{
                         textAlign: 'center',
                         padding: '40px',
                         background: '#fff',
                         borderRadius: '12px',
-                        boxShadow: '0 5px 15px rgba(0,0,0,0.05)'
+                        boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
+                        marginTop: '30px'
                     }}>
                         <FaTrophy style={{ fontSize: '3rem', color: '#FFA500', marginBottom: '20px' }} />
                         <h2 style={{ color: '#333', marginBottom: '15px' }}>No Challenges Found</h2>
                         <p style={{ color: '#666', marginBottom: '20px' }}>
-                            There are no cooking challenges available right now. Check back later or create your own!
+                            {activeFilter === 'saved' 
+                                ? "You haven't saved any challenges yet. Browse challenges and save your favorites!"
+                                : "There are no cooking challenges matching your criteria. Try adjusting your filters or create your own challenge!"}
                         </p>
+                        <button 
+                            onClick={() => {
+                                setActiveFilter('all');
+                                setSearchTerm('');
+                            }}
+                            style={{
+                                background: 'linear-gradient(45deg, #3a86ff, #4CAF50)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '12px 25px',
+                                borderRadius: '30px',
+                                cursor: 'pointer',
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                transition: 'all 0.3s ease',
+                                marginRight: '10px',
+                                ':hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 5px 15px rgba(58,134,255,0.3)'
+                                }
+                            }}
+                        >
+                            Browse All Challenges
+                        </button>
                         <button 
                             onClick={() => navigate('/createchallenge')}
                             style={{
@@ -410,6 +700,10 @@ function DisplayChallengers() {
                         from { opacity: 0; transform: translateY(10px); }
                         to { opacity: 1; transform: translateY(0); }
                     }
+                    @keyframes slideIn {
+                        from { opacity: 0; transform: translateX(20px); }
+                        to { opacity: 1; transform: translateX(0); }
+                    }
                 `}</style>
             </div>
         </div>
@@ -440,7 +734,11 @@ const ChallengeCard = ({
     handleReviewSubmit,
     shareChallenge,
     formatDate,
-    getStatusBadge
+    getStatusBadge,
+    participants,
+    showParticipants,
+    toggleParticipants,
+    handleJoinChallenge
 }) => {
     return (
         <div key={challenge.id} style={{
@@ -556,8 +854,9 @@ const ChallengeCard = ({
                 width: '100%',
                 height: '250px',
                 overflow: 'hidden',
-                position: 'relative'
-            }}>
+                position: 'relative',
+                cursor: 'pointer'
+            }} onClick={() => toggleExpand(challenge.id)}>
                 {challenge.challengeImage ? (
                     <img 
                         src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
@@ -605,14 +904,16 @@ const ChallengeCard = ({
                     fontSize: '1.5rem',
                     fontWeight: '600',
                     color: '#333',
-                    lineHeight: '1.3'
-                }}>{challenge.ChallengeTitle}</h2>
+                    lineHeight: '1.3',
+                    cursor: 'pointer'
+                }} onClick={() => toggleExpand(challenge.id)}>{challenge.ChallengeTitle}</h2>
                 
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '15px',
-                    marginBottom: '15px'
+                    marginBottom: '15px',
+                    flexWrap: 'wrap'
                 }}>
                     <span style={{
                         display: 'flex',
@@ -624,7 +925,134 @@ const ChallengeCard = ({
                         <FaCalendarAlt style={{ color: '#3a86ff' }} />
                         {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
                     </span>
+                    
+                    <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        color: '#666',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        ':hover': {
+                            color: '#3a86ff'
+                        }
+                    }} onClick={(e) => {
+                        e.stopPropagation();
+                        toggleParticipants(challenge.id);
+                    }}>
+                        <FaUsers style={{ color: '#FFA500' }} />
+                        {participants.length} Participants
+                    </span>
                 </div>
+                
+                {/* Participants Popup */}
+                {showParticipants === challenge.id && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '0',
+                        right: '0',
+                        background: '#fff',
+                        borderRadius: '8px',
+                        boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
+                        padding: '15px',
+                        zIndex: '5',
+                        marginTop: '5px',
+                        animation: 'fadeIn 0.2s ease'
+                    }}>
+                        <h4 style={{
+                            margin: '0 0 10px',
+                            fontSize: '1rem',
+                            color: '#333',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <FaUsers style={{ color: '#FFA500' }} />
+                            Challenge Participants
+                        </h4>
+                        {participants.length > 0 ? (
+                            <div style={{
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                                paddingRight: '10px'
+                            }}>
+                                {participants.map((participant, index) => (
+                                    <div key={index} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '8px 0',
+                                        borderBottom: '1px solid #f0f0f0'
+                                    }}>
+                                        <div style={{
+                                            width: '30px',
+                                            height: '30px',
+                                            borderRadius: '50%',
+                                            background: '#f0f0f0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <FaUser style={{ color: '#666', fontSize: '0.8rem' }} />
+                                        </div>
+                                        <span style={{
+                                            fontSize: '0.9rem',
+                                            color: '#333'
+                                        }}>
+                                            {participant.username || `Participant ${index + 1}`}
+                                        </span>
+                                        {participant.isWinner && (
+                                            <span style={{
+                                                marginLeft: 'auto',
+                                                background: '#FFA500',
+                                                color: 'white',
+                                                fontSize: '0.7rem',
+                                                padding: '3px 8px',
+                                                borderRadius: '10px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '3px'
+                                            }}>
+                                                <FaTrophy /> Winner
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p style={{
+                                color: '#666',
+                                fontSize: '0.9rem',
+                                textAlign: 'center',
+                                padding: '10px 0'
+                            }}>
+                                No participants yet. Be the first to join!
+                            </p>
+                        )}
+                        <button 
+                            onClick={() => handleJoinChallenge(challenge.id)}
+                            style={{
+                                background: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 15px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                marginTop: '15px',
+                                width: '100%',
+                                transition: 'all 0.2s ease',
+                                ':hover': {
+                                    background: '#3e8e41'
+                                }
+                            }}
+                        >
+                            Join Challenge
+                        </button>
+                    </div>
+                )}
             </div>
             
             {/* Challenge Actions */}
@@ -719,6 +1147,28 @@ const ChallengeCard = ({
                 >
                     <FaShareAlt />
                     <span>Share</span>
+                </button>
+                
+                <button 
+                    onClick={() => toggleSave(challenge.id)}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: savedChallenges.includes(challenge.id) ? '#FFA500' : '#666',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        transition: 'all 0.2s ease',
+                        ':hover': {
+                            transform: 'scale(1.1)',
+                            color: '#FFA500'
+                        }
+                    }}
+                >
+                    {savedChallenges.includes(challenge.id) ? <FaBookmark /> : <FaRegBookmark />}
+                    <span>Save</span>
                 </button>
             </div>
             
@@ -1018,6 +1468,28 @@ const ChallengeCard = ({
                                 </li>
                             ))}
                         </ul>
+                    </div>
+                    
+                    <div style={{ marginTop: '20px' }}>
+                        <h3 style={{
+                            fontSize: '1.2rem',
+                            margin: '15px 0 10px',
+                            color: '#333',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            paddingBottom: '5px',
+                            borderBottom: '2px solid #f0f0f0'
+                        }}>
+                            <FaAward style={{ color: '#FFA500' }} />
+                            Prize Information
+                        </h3>
+                        <p style={{
+                            color: '#555',
+                            lineHeight: '1.8'
+                        }}>
+                            {challenge.prizeInfo || 'No prize information available.'}
+                        </p>
                     </div>
                 </div>
             )}
