@@ -7,7 +7,7 @@ import {
   FaTrophy, FaEllipsisH, FaRegBookmark, 
   FaBookmark, FaFireAlt, FaLeaf, FaEdit,
   FaTrash, FaComment, FaUser, FaStar, 
-  FaRegStar, FaCalendarAlt, FaListAlt, FaUtensils
+  FaRegStar, FaCalendarAlt, FaListAlt, FaUtensils, FaUsers, FaPlus
 } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -137,6 +137,216 @@ function Challengers() {
     return (
         <div style={{ backgroundColor: '#fff9f5' }}>
             <Navbar />
+            
+            {/* Hero Section */}
+            <div style={{
+                position: 'relative',
+                height: '600px',
+                width: '100%',
+                overflow: 'hidden',
+                marginBottom: '50px'
+            }}>
+                {/* Background Image with Overlay */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'url("https://images.unsplash.com/photo-1556911220-bff31c812dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'brightness(0.6)'
+                }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.8))'
+                    }} />
+                </div>
+
+                {/* Hero Content */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    padding: '0 20px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        padding: '40px 60px',
+                        borderRadius: '20px',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        maxWidth: '900px'
+                    }}>
+                        <h1 style={{
+                            color: '#fff',
+                            fontSize: '4.5rem',
+                            fontWeight: '800',
+                            marginBottom: '25px',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                            background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            Culinary Masterpieces
+                        </h1>
+                        <p style={{
+                            color: '#fff',
+                            fontSize: '1.5rem',
+                            maxWidth: '700px',
+                            marginBottom: '40px',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                            lineHeight: '1.6'
+                        }}>
+                            Join the ultimate cooking competition platform. Showcase your skills, compete with top chefs, and win amazing prizes!
+                        </p>
+
+                        {/* Feature Cards */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '30px',
+                            marginBottom: '40px',
+                            justifyContent: 'center'
+                        }}>
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                padding: '20px',
+                                borderRadius: '15px',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                flex: 1,
+                                maxWidth: '250px'
+                            }}>
+                                <FaTrophy style={{
+                                    fontSize: '2.5rem',
+                                    color: '#ffd700',
+                                    marginBottom: '15px'
+                                }} />
+                                <h3 style={{
+                                    color: '#fff',
+                                    fontSize: '1.2rem',
+                                    marginBottom: '10px'
+                                }}>Win Prizes</h3>
+                                <p style={{
+                                    color: '#fff',
+                                    fontSize: '0.9rem',
+                                    opacity: 0.9
+                                }}>Compete for exciting rewards and recognition</p>
+                            </div>
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                padding: '20px',
+                                borderRadius: '15px',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                flex: 1,
+                                maxWidth: '250px'
+                            }}>
+                                <FaUsers style={{
+                                    fontSize: '2.5rem',
+                                    color: '#4CAF50',
+                                    marginBottom: '15px'
+                                }} />
+                                <h3 style={{
+                                    color: '#fff',
+                                    fontSize: '1.2rem',
+                                    marginBottom: '10px'
+                                }}>Join Community</h3>
+                                <p style={{
+                                    color: '#fff',
+                                    fontSize: '0.9rem',
+                                    opacity: 0.9
+                                }}>Connect with fellow cooking enthusiasts</p>
+                            </div>
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                padding: '20px',
+                                borderRadius: '15px',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                flex: 1,
+                                maxWidth: '250px'
+                            }}>
+                                <FaFireAlt style={{
+                                    fontSize: '2.5rem',
+                                    color: '#ff6b6b',
+                                    marginBottom: '15px'
+                                }} />
+                                <h3 style={{
+                                    color: '#fff',
+                                    fontSize: '1.2rem',
+                                    marginBottom: '10px'
+                                }}>Show Skills</h3>
+                                <p style={{
+                                    color: '#fff',
+                                    fontSize: '0.9rem',
+                                    opacity: 0.9
+                                }}>Display your culinary expertise</p>
+                            </div>
+                        </div>
+
+                        {/* CTA Buttons */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '20px',
+                            justifyContent: 'center'
+                        }}>
+                            <button 
+                                onClick={() => navigate('/allchallengers')}
+                                style={{
+                                    padding: '15px 35px',
+                                    borderRadius: '30px',
+                                    border: 'none',
+                                    background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
+                                    color: 'white',
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 15px rgba(255,107,107,0.3)'
+                                }}
+                            >
+                                <FaFireAlt /> Explore Challenges
+                            </button>
+                            <button 
+                                onClick={() => navigate('/addchallengers')}
+                                style={{
+                                    padding: '15px 35px',
+                                    borderRadius: '30px',
+                                    border: '2px solid #fff',
+                                    background: 'transparent',
+                                    color: 'white',
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                <FaPlus /> Create Challenge
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -146,69 +356,6 @@ function Challengers() {
             }}>
                 
                 <ToastContainer position="top-right" autoClose={3000} />
-                
-                {/* Hero Section without Image */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    margin: '40px 0',
-                    padding: '30px',
-                    borderRadius: '20px',
-                    background: 'linear-gradient(135deg, #fff0e6, #ffd9b3)',
-                    boxShadow: '0 10px 30px rgba(255,107,107,0.1)',
-                    textAlign: 'center'
-                }}>
-                    <h1 style={{
-                        color: '#333',
-                        fontSize: '2.8rem',
-                        fontWeight: '700',
-                        marginBottom: '15px',
-                        background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
-                    }}>
-                        Culinary Challenges
-                    </h1>
-                    <p style={{
-                        color: '#555',
-                        fontSize: '1.2rem',
-                        maxWidth: '700px',
-                        margin: '0 auto 25px',
-                        lineHeight: '1.6'
-                    }}>
-                        Test your skills, push your boundaries, and create delicious masterpieces in our cooking challenges. 
-                        Join a community of passionate food enthusiasts and compete for culinary glory!
-                    </p>
-                    <div style={{
-                        display: 'flex',
-                        gap: '15px',
-                        marginBottom: '20px',
-                        justifyContent: 'center'
-                    }}>
-                        <button 
-                            onClick={() => navigate('/allchallengers')}
-                            style={{
-                                background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
-                                color: 'white',
-                                border: 'none',
-                                padding: '12px 25px',
-                                borderRadius: '30px',
-                                cursor: 'pointer',
-                                fontSize: '1rem',
-                                fontWeight: '600',
-                                boxShadow: '0 4px 15px rgba(255,107,107,0.3)',
-                                transition: 'all 0.3s ease',
-                                ':hover': {
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: '0 6px 20px rgba(255,107,107,0.4)'
-                                }
-                            }}
-                        >
-                           Explore Challengers
-                        </button>
-                    </div>
-                </div>
                 
                 {/* Challenges Grid */}
                 <div style={{

@@ -444,6 +444,154 @@ function AllChallengers() {
     return (
         <div>
             <Navbar />
+            
+            {/* Hero Section */}
+            <div style={{
+                position: 'relative',
+                height: '600px',
+                width: '100%',
+                overflow: 'hidden',
+                marginBottom: '50px'
+            }}>
+                {/* Background Image with Overlay */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'url("https://images.unsplash.com/photo-1556911220-bff31c812dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'brightness(0.6)'
+                }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.8))'
+                    }} />
+                </div>
+
+                {/* Hero Content */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    padding: '0 20px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        padding: '30px 50px',
+                        borderRadius: '20px',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        maxWidth: '800px'
+                    }}>
+                        <h1 style={{
+                            color: '#fff',
+                            fontSize: '4rem',
+                            fontWeight: '800',
+                            marginBottom: '20px',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            Cooking Competitions
+                        </h1>
+                        <p style={{
+                            color: '#fff',
+                            fontSize: '1.4rem',
+                            maxWidth: '600px',
+                            marginBottom: '40px',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                            lineHeight: '1.6'
+                        }}>
+                            Showcase your culinary skills, compete with top chefs, and win exciting prizes
+                        </p>
+
+                        {/* Search Bar */}
+                        <div style={{
+                            width: '100%',
+                            maxWidth: '700px',
+                            position: 'relative'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                gap: '15px',
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                padding: '15px',
+                                borderRadius: '50px',
+                                boxShadow: '0 4px 30px rgba(0,0,0,0.3)'
+                            }}>
+                                <div style={{
+                                    flex: 1,
+                                    position: 'relative'
+                                }}>
+                                    <FaSearch style={{
+                                        position: 'absolute',
+                                        left: '25px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#666',
+                                        fontSize: '1.4rem'
+                                    }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search cooking competitions..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '18px 20px 18px 60px',
+                                            borderRadius: '25px',
+                                            border: 'none',
+                                            fontSize: '1.1rem',
+                                            outline: 'none',
+                                            background: 'transparent'
+                                        }}
+                                    />
+                                </div>
+                                <button 
+                                    onClick={() => navigate('/addchallengers')}
+                                    style={{
+                                        padding: '18px 35px',
+                                        borderRadius: '25px',
+                                        border: 'none',
+                                        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                                        color: 'white',
+                                        fontSize: '1.1rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: '0 4px 15px rgba(255,107,107,0.3)',
+                                        ':hover': {
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: '0 6px 20px rgba(255,107,107,0.4)'
+                                        }
+                                    }}
+                                >
+                                    <FaFireAlt style={{ fontSize: '1.2rem' }} /> Create Competition
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -452,7 +600,6 @@ function AllChallengers() {
                 backgroundColor: '#f9f9f9',
                 minHeight: '100vh'
             }}>
-                
                 <ToastContainer position="top-right" autoClose={3000} />
                 
                 <div style={{
