@@ -528,7 +528,7 @@ function DisplayRecipe() {
                                         className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         <FaStar />
-                                        <span>{recipe.reviews?.length || 0}</span>
+                                        <span>{reviews[recipe.id]?.length || 0}</span>
                                     </button>
                                     <button 
                                         onClick={() => shareRecipe(recipe)}
@@ -676,9 +676,21 @@ function DisplayRecipe() {
                                                         {/* Show Edit only for demoUser, but Delete for all */}
                                                         <>
                                                             {review.userId === 'demoUser' && (
-                                                                <button onClick={() => handleEditReview(recipe.id, review)} className="ml-2 text-blue-500">Edit</button>
+                                                                <button
+                                                                    onClick={() => handleEditReview(recipe.id, review)}
+                                                                    className="flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-500 hover:text-white transition-colors duration-200 mr-2"
+                                                                    title="Edit Review"
+                                                                >
+                                                                    <FaEdit className="mr-1" /> Edit
+                                                                </button>
                                                             )}
-                                                            <button onClick={() => handleDeleteReview(recipe.id, review.id)} className="ml-2 text-red-500">Delete</button>
+                                                            <button
+                                                                onClick={() => handleDeleteReview(recipe.id, review.id)}
+                                                                className="flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-200"
+                                                                title="Delete Review"
+                                                            >
+                                                                <FaTrash className="mr-1" /> Delete
+                                                            </button>
                                                         </>
                                                     </div>
                                                 </div>
