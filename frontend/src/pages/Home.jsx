@@ -576,7 +576,7 @@ function Home() {
                         }}>
                             Participate in cooking challenges and showcase your culinary skills.
                         </p>
-                        <Link to="/displaychallengers" style={{
+                        <Link to="/allchallengers" style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
@@ -612,7 +612,7 @@ function Home() {
                         }}>
                             Discover thousands of recipes from our community of passionate cooks.
                         </p>
-                        <Link to="/displayrecipe" style={{
+                        <Link to="/all-recipes" style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
