@@ -68,6 +68,8 @@ function AllRecipes() {
   const [shareMessage, setShareMessage] = useState('');
   const [selectedRecipeForShare, setSelectedRecipeForShare] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [showFullRecipe, setShowFullRecipe] = useState(null);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
 
   useEffect(() => {
     loadRecipes();
@@ -242,6 +244,11 @@ function AllRecipes() {
       console.error('Error sharing:', error);
       toast.error('Failed to share recipe');
     }
+  };
+
+  const handleViewFullRecipe = (recipe) => {
+    setSelectedRecipe(recipe);
+    setShowFullRecipe(true);
   };
 
   return (
@@ -588,6 +595,15 @@ function AllRecipes() {
                   </div>
                 </div>
 
+                {/* Add View Full Recipe Button */}
+                <button
+                  onClick={() => handleViewFullRecipe(recipe)}
+                  className="w-full mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <FaBookOpen />
+                  <span>View Full Recipe</span>
+                </button>
+
                 {/* Cook Mode Panel */}
                 {showCookMode === recipe.id && (
                   <motion.div
@@ -692,6 +708,174 @@ function AllRecipes() {
           >
             Clear List
           </button>
+        </div>
+      )}
+
+      {/* Full Recipe Modal */}
+      {showFullRecipe && selectedRecipe && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto`}
+          >
+            {/* Modal Header */}
+            <div className="relative">
+              <img
+                src={getImageUrl(selectedRecipe.recipeImage)}
+                alt={selectedRecipe.title}
+                className="w-full h-64 object-cover rounded-t-2xl"
+              />
+              <button
+                onClick={() => setShowFullRecipe(false)}
+                className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
+              >
+                <FaTimes className="text-gray-600" />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                <h2 className="text-3xl font-bold text-white mb-2">{selectedRecipe.title}</h2>
+                <div className="flex items-center space-x-4 text-white/90">
+                  <div className="flex items-center">
+                    <FaClock className="mr-2" />
+                    <span>{selectedRecipe.time} minutes</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FaUtensils className="mr-2" />
+                    <span>{selectedRecipe.servings || 'N/A'} servings</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FaBookOpen className="mr-2" />
+                    <span>{selectedRecipe.difficulty || 'Medium'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Recipe Info */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
+                    <FaUser className="text-rose-500 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{selectedRecipe.author || 'Anonymous Chef'}</h3>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <span>{new Date(selectedRecipe.createdAt).toLocaleDateString()}</span>
+                      {selectedRecipe.location && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center">
+                            <FaMapMarkerAlt className="mr-1" />
+                            {selectedRecipe.location}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  {getTypeIcon(selectedRecipe.type)}
+                  <span className="text-sm font-medium">{selectedRecipe.type}</span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-2">Description</h3>
+                <p className="text-gray-600">{selectedRecipe.description}</p>
+              </div>
+
+              {/* Ingredients */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4">Ingredients</h3>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <ul className="space-y-2">
+                    {selectedRecipe.ingredients.split('\n').map((ingredient, index) => (
+                      <li key={index} className="flex items-start space-x-3">
+                        <span className="text-rose-500 mt-1">•</span>
+                        <span>{ingredient.trim()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => addToShoppingList(selectedRecipe)}
+                  className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors flex items-center space-x-2"
+                >
+                  <FaShoppingCart />
+                  <span>Add All to Shopping List</span>
+                </button>
+              </div>
+
+              {/* Cooking Steps */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4">Cooking Steps</h3>
+                <div className="space-y-4">
+                  {selectedRecipe.steps.split('\n').map((step, index) => (
+                    <div key={index} className="flex space-x-4 bg-gray-50 rounded-xl p-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center font-semibold">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-600">{step.trim()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags */}
+              {selectedRecipe.tags?.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold mb-4">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRecipe.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 bg-rose-50 rounded-full text-sm text-rose-500">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Engagement Bar */}
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                <div className="flex items-center space-x-6">
+                  <button 
+                    onClick={() => toggleLike(selectedRecipe.id)}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-rose-500 transition-colors group"
+                  >
+                    {likedRecipes.includes(selectedRecipe.id) ? 
+                      <FaHeart className="text-rose-500" /> : 
+                      <FaRegHeart />
+                    }
+                    <span>{selectedRecipe.likes || 0}</span>
+                  </button>
+                  <button 
+                    onClick={() => toggleSave(selectedRecipe.id)}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-rose-500 transition-colors group"
+                  >
+                    {savedRecipes.includes(selectedRecipe.id) ? 
+                      <FaBookmark className="text-rose-500" /> : 
+                      <FaRegBookmark />
+                    }
+                    <span>Save Recipe</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSelectedRecipeForShare(selectedRecipe);
+                      setShowShareModal(true);
+                    }}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-rose-500 transition-colors group"
+                  >
+                    <FaShare />
+                    <span>Share Recipe</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>
