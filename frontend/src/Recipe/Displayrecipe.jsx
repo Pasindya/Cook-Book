@@ -90,8 +90,20 @@ function DisplayRecipe() {
 
     useEffect(() => {
         loadRecipes();
-        const saved = JSON.parse(localStorage.getItem('savedRecipes')) || [];
-        const liked = JSON.parse(localStorage.getItem('likedRecipes')) || [];
+        let saved = [];
+        let liked = [];
+        try {
+            saved = JSON.parse(localStorage.getItem('savedRecipes'));
+            if (!Array.isArray(saved)) saved = [];
+        } catch {
+            saved = [];
+        }
+        try {
+            liked = JSON.parse(localStorage.getItem('likedRecipes'));
+            if (!Array.isArray(liked)) liked = [];
+        } catch {
+            liked = [];
+        }
         setSavedRecipes(saved);
         setLikedRecipes(liked);
     }, []);
