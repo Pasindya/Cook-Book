@@ -276,18 +276,58 @@ function AllChallengers() {
         e.preventDefault();
         try {
             await axios.post(`http://localhost:8080/api/challenges/${selectedChallenge.id}/join`, joinFormData);
-            toast.success('Successfully joined the challenge!');
+            
+            // Save joined challenge to localStorage
+            const prevJoined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
+            // Avoid duplicates by id
+            const alreadyJoined = prevJoined.some(c => c.id === selectedChallenge.id);
+            let newJoined = prevJoined;
+            if (!alreadyJoined) {
+                newJoined = [...prevJoined, selectedChallenge];
+                localStorage.setItem('joinedChallenges', JSON.stringify(newJoined));
+            }
+
+            // Show success message
+            toast.success('Successfully joined the challenge! Redirecting to your profile...', {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
+            // Close the modal and reset form
             setShowJoinModal(false);
             setJoinFormData({ name: '', email: '', reason: '' });
+
             // Reload participants for this challenge
             const response = await axios.get(`http://localhost:8080/api/challenges/${selectedChallenge.id}/participants`);
             setParticipants(prev => ({
                 ...prev,
                 [selectedChallenge.id]: response.data
             }));
+
+            // Navigate to profile page with joined challenge topic
+            setTimeout(() => {
+                navigate('/profile', { 
+                    state: { 
+                        activeTab: 'joinedChallenges',
+                        message: `You have successfully joined the "${selectedChallenge.ChallengeTitle}" challenge!`
+                    }
+                });
+            }, 2000); // Wait for 2 seconds to show the success message
+
         } catch (error) {
             console.error("Error joining challenge:", error);
-            toast.error(error.response?.data || 'Failed to join challenge');
+            toast.error(error.response?.data || 'Failed to join challenge', {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
         }
     };
 

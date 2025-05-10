@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { 
@@ -20,9 +20,10 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function Profile() {
-  const [activeTab, setActiveTab] = useState('saved'); // 'saved' or 'liked'
+  const [activeTab, setActiveTab] = useState('saved'); // 'saved', 'liked', or 'joinedChallenges'
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [likedRecipes, setLikedRecipes] = useState([]);
+  const [joinedChallenges, setJoinedChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState({
     name: 'John Doe',
@@ -34,9 +35,21 @@ function Profile() {
     coverImage: null
   });
   const navigate = useNavigate();
+  const location = useLocation();
+  const [joinMessage, setJoinMessage] = useState('');
 
   useEffect(() => {
+    // If redirected from join, set tab and show message
+    if (location.state && location.state.activeTab === 'joinedChallenges') {
+      setActiveTab('joinedChallenges');
+      if (location.state.message) {
+        setJoinMessage(location.state.message);
+        setTimeout(() => setJoinMessage(''), 5000);
+      }
+    }
     loadUserData();
+    loadJoinedChallenges();
+    // eslint-disable-next-line
   }, []);
 
   const loadUserData = async () => {
@@ -71,6 +84,11 @@ function Profile() {
     }
   };
 
+  const loadJoinedChallenges = () => {
+    const joined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
+    setJoinedChallenges(joined);
+  };
+
   const handleImageUpload = (type) => {
     // Implement image upload functionality
     toast.info('Image upload functionality coming soon!');
@@ -84,7 +102,13 @@ function Profile() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+      {joinMessage && (
+        <div className="max-w-4xl mx-auto mt-4 mb-0 px-4">
+          <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg shadow text-center font-semibold">
+            {joinMessage}
+          </div>
+        </div>
+      )}
       {/* Profile Header */}
       <div className="relative">
         {/* Cover Image */}
@@ -182,61 +206,146 @@ function Profile() {
               <FaHeart className="inline mr-2" />
               Liked Recipes
             </button>
+            <button
+              onClick={() => setActiveTab('joinedChallenges')}
+              className={`pb-2 px-1 ${
+                activeTab === 'joinedChallenges'
+                  ? 'border-b-2 border-green-500 text-green-600'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <FaUtensils className="inline mr-2" />
+              Joined Challenges
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Recipe Grid */}
+      {/* Recipe/Challenge Grid */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(activeTab === 'saved' ? savedRecipes : likedRecipes).map(recipe => (
-              <motion.div
-                key={recipe.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
-              >
-                <img
-                  src={getImageUrl(recipe.recipeImage)}
-                  alt={recipe.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{recipe.title}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{recipe.description}</p>
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center">
-                        <FaClock className="mr-1" />
-                        <span>{recipe.time}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <FaUtensils className="mr-1" />
-                        <span>{recipe.type}</span>
+          <>
+            {activeTab === 'saved' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {savedRecipes.map(recipe => (
+                  <motion.div
+                    key={recipe.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  >
+                    <img
+                      src={getImageUrl(recipe.recipeImage)}
+                      alt={recipe.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">{recipe.title}</h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{recipe.description}</p>
+                      
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center">
+                            <FaClock className="mr-1" />
+                            <span>{recipe.time}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <FaUtensils className="mr-1" />
+                            <span>{recipe.type}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaHeart className="text-rose-500" />
+                          </button>
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaComment />
+                          </button>
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaShareAlt />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <button className="hover:text-rose-500 transition-colors">
-                        <FaHeart className="text-rose-500" />
-                      </button>
-                      <button className="hover:text-rose-500 transition-colors">
-                        <FaComment />
-                      </button>
-                      <button className="hover:text-rose-500 transition-colors">
-                        <FaShareAlt />
-                      </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            {activeTab === 'liked' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {likedRecipes.map(recipe => (
+                  <motion.div
+                    key={recipe.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  >
+                    <img
+                      src={getImageUrl(recipe.recipeImage)}
+                      alt={recipe.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">{recipe.title}</h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{recipe.description}</p>
+                      
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center">
+                            <FaClock className="mr-1" />
+                            <span>{recipe.time}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <FaUtensils className="mr-1" />
+                            <span>{recipe.type}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaHeart className="text-rose-500" />
+                          </button>
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaComment />
+                          </button>
+                          <button className="hover:text-rose-500 transition-colors">
+                            <FaShareAlt />
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            {activeTab === 'joinedChallenges' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {joinedChallenges.length === 0 ? (
+                  <div className="col-span-2 text-center text-gray-500 py-8">
+                    You haven't joined any challenges yet.
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                ) : (
+                  joinedChallenges.map((challenge, idx) => (
+                    <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">{challenge.ChallengeTitle}</h3>
+                      <p className="text-gray-600 text-sm mb-2">{challenge.challengeDetails}</p>
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <FaCalendarAlt className="mr-1" />
+                        <span>{challenge.startDate} - {challenge.endDate}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <FaUtensils className="mr-1" />
+                        <span>Rules: {challenge.rules}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
