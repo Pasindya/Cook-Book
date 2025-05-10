@@ -33,6 +33,7 @@ function AllChallengers() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [participants, setParticipants] = useState({});
     const [showParticipants, setShowParticipants] = useState(null);
+
     const [showJoinModal, setShowJoinModal] = useState(false);
     const [selectedChallenge, setSelectedChallenge] = useState(null);
     const [joinFormData, setJoinFormData] = useState({
@@ -40,6 +41,7 @@ function AllChallengers() {
         email: '',
         reason: ''
     });
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -182,7 +184,9 @@ function AllChallengers() {
     };
     
     const toggleParticipants = (challengeId) => {
+
         setShowParticipants(showParticipants === challenge.id ? null : challenge.id);
+
     };
 
     const handleDelete = async (challengeId) => {
@@ -267,6 +271,7 @@ function AllChallengers() {
         navigate(`/updatechallenge/${challengeId}`);
     };
     
+
     const handleJoinClick = (challenge) => {
         setSelectedChallenge(challenge);
         setShowJoinModal(true);
@@ -290,6 +295,7 @@ function AllChallengers() {
             toast.error(error.response?.data || 'Failed to join challenge');
         }
     };
+
 
     const renderChallengeSection = (title, challenges, icon, color) => {
         if (challenges.length === 0) return null;
@@ -369,7 +375,10 @@ function AllChallengers() {
                             participants={participants[challenge.id] || []}
                             showParticipants={showParticipants}
                             toggleParticipants={toggleParticipants}
+
                             handleJoinClick={handleJoinClick}
+
+
                         />
                     ))}
                 </div>
@@ -684,6 +693,7 @@ function AllChallengers() {
                     </div>
                 )}
                 
+
                 {/* Join Challenge Modal */}
                 {showJoinModal && selectedChallenge && (
                     <div style={{
@@ -897,6 +907,7 @@ function AllChallengers() {
                     </div>
                 )}
                 
+
                 <style>{`
                     @keyframes spin {
                         0% { transform: rotate(0deg); }
@@ -944,7 +955,9 @@ const ChallengeCard = ({
     participants,
     showParticipants,
     toggleParticipants,
+
     handleJoinClick
+
 }) => {
     const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
 
@@ -1365,6 +1378,7 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
+
                         onClick={() => handleJoinClick(challenge)}
                         style={{
                             display: 'flex',
@@ -1390,6 +1404,7 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
+
                         onClick={() => toggleSave(challenge.id)}
                         style={{
                             display: 'flex',
@@ -1415,6 +1430,7 @@ const ChallengeCard = ({
                         <span>Save</span>
                     </button>
                 </div>
+
 
                 {/* Participants Section */}
                 {expandedChallenges[challenge.id] && (
@@ -1562,6 +1578,7 @@ const ChallengeCard = ({
                         )}
                     </div>
                 )}
+
             </div>
         </div>
     );
