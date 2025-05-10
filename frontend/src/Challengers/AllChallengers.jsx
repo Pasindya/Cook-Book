@@ -29,6 +29,7 @@ function AllChallengers() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState('latest');
     const [showSortMenu, setShowSortMenu] = useState(false);
+    const [showFullDetails, setShowFullDetails] = useState({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -69,6 +70,7 @@ function AllChallengers() {
             
             const formattedChallenges = response.data.map(challenge => ({
                 ...challenge,
+                ChallengeTitle: challenge.ChallengeTitle || challenge.challengeTitle,
                 startDate: challenge.startDate || new Date().toISOString().split('T')[0],
                 endDate: challenge.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 challengeImage: challenge.challengeImage || null
@@ -205,113 +207,150 @@ function AllChallengers() {
         categorizeChallenges(sortedChallenges);
     };
 
+    const toggleFullDetails = (challengeId) => {
+        setShowFullDetails(prev => ({
+            ...prev,
+            [challengeId]: !prev[challengeId]
+        }));
+    };
+
     const renderChallengeCard = (challenge) => (
         <div 
             key={challenge.id} 
-            style={styles.challengeCard}
-            className="challenge-card"
+            style={styles.feedCard}
+            className="feed-card"
         >
-            {/* Status Badge */}
-            <div style={styles.statusBadge}>
-                {getStatusBadge(challenge.startDate, challenge.endDate)}
-            </div>
-            
-            {/* Challenge Image with Gradient Overlay */}
-            <div style={styles.imageContainer}>
-                {challenge.challengeImage ? (
-                    <div style={styles.imageWrapper}>
-                        <img 
-                            src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
-                            alt={challenge.ChallengeTitle}
-                            style={styles.challengeImage}
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = 'https://via.placeholder.com/400x250?text=Challenge+Image';
-                            }}
-                        />
-                        <div style={styles.imageOverlay} />
+            {/* Challenge Header */}
+            <div style={styles.cardHeader}>
+                <div style={styles.userInfo}>
+                    <div style={styles.avatarContainer}>
+                        <FaTrophy style={styles.avatarIcon} />
                     </div>
+                    <div style={styles.userDetails}>
+                        <h2 style={styles.challengeTitle}>
+                            {challenge.ChallengeTitle || challenge.challengeTitle || 'Untitled Challenge'}
+                        </h2>
+                        <div style={styles.challengeMeta}>
+                            <span style={styles.dateText}>
+                                <FaCalendarAlt style={styles.metaIcon} />
+                                {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
+                            </span>
+                            {getStatusBadge(challenge.startDate, challenge.endDate)}
+                        </div>
+                    </div>
+                </div>
+                <div style={styles.headerActions}>
+                    <button 
+                        onClick={() => toggleSave(challenge.id)}
+                        style={styles.iconButton}
+                        title="Save Challenge"
+                    >
+                        {savedChallenges.includes(challenge.id) ? 
+                            <FaBookmark style={{ color: '#3a86ff' }} /> : 
+                            <FaRegBookmark />
+                        }
+                    </button>
+                </div>
+            </div>
+
+            {/* Challenge Image */}
+            <div 
+                style={styles.imageContainer}
+                onClick={() => navigate(`/challenge/${challenge.id}`)}
+            >
+                {challenge.challengeImage ? (
+                    <img 
+                        src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
+                        alt={challenge.ChallengeTitle}
+                        style={styles.challengeImage}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/800x400?text=Challenge+Image';
+                        }}
+                    />
                 ) : (
                     <div style={styles.placeholderImage}>
                         <FaTrophy style={styles.placeholderIcon} />
                     </div>
                 )}
             </div>
-            
-            {/* Challenge Content */}
-            <div style={styles.challengeContent}>
-                {/* Title Section */}
-                <div style={styles.titleSection}>
-                    <h3 style={styles.challengeTitle}>{challenge.ChallengeTitle}</h3>
-                    <div style={styles.dateContainer}>
-                        <FaCalendarAlt style={styles.dateIcon} />
-                        <span style={styles.dateText}>
-                            {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
-                        </span>
-                    </div>
-                </div>
 
-                {/* Challenge Details */}
-                <div style={styles.detailsSection}>
+            {/* Challenge Content */}
+            <div style={styles.cardContent}>
+                {/* Challenge Description with Full Details */}
+                <div style={styles.descriptionContainer}>
                     <div style={styles.detailsHeader}>
                         <FaUtensils style={styles.detailsIcon} />
                         <span style={styles.detailsTitle}>Challenge Details</span>
                     </div>
-                    <p style={styles.challengeDescription}>
-                        {challenge.challengeDetails}
-                    </p>
+                    <div style={styles.descriptionText}>
+                        {showFullDetails[challenge.id] ? (
+                            <>
+                                <p style={styles.challengeDescription}>
+                                    {challenge.challengeDetails}
+                                </p>
+                                {challenge.Rules && (
+                                    <div style={styles.rulesSection}>
+                                        <div style={styles.detailsHeader}>
+                                            <FaLeaf style={styles.detailsIcon} />
+                                            <span style={styles.detailsTitle}>Rules & Guidelines</span>
+                                        </div>
+                                        <p style={styles.rulesText}>
+                                            {challenge.Rules}
+                                        </p>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <p style={styles.challengeDescription}>
+                                {challenge.challengeDetails?.substring(0, 150)}
+                                {challenge.challengeDetails?.length > 150 ? '...' : ''}
+                            </p>
+                        )}
+                    </div>
+                    {challenge.challengeDetails?.length > 150 && (
+                        <button 
+                            onClick={() => toggleFullDetails(challenge.id)}
+                            style={styles.readMoreButton}
+                        >
+                            {showFullDetails[challenge.id] ? 'Show Less' : 'Read More'}
+                            <FaChevronRight style={{ 
+                                fontSize: '0.8rem', 
+                                marginLeft: '5px',
+                                transform: showFullDetails[challenge.id] ? 'rotate(90deg)' : 'none',
+                                transition: 'transform 0.3s ease'
+                            }} />
+                        </button>
+                    )}
                 </div>
 
-                {/* Rules Section */}
-                {challenge.Rules && (
-                    <div style={styles.rulesSection}>
-                        <div style={styles.detailsHeader}>
-                            <FaLeaf style={styles.detailsIcon} />
-                            <span style={styles.detailsTitle}>Rules & Guidelines</span>
-                        </div>
-                        <p style={styles.rulesText}>
-                            {challenge.Rules}
-                        </p>
-                    </div>
-                )}
-                
                 {/* Challenge Stats */}
                 <div style={styles.statsContainer}>
-                    <div style={styles.stat}>
-                        <FaUsers style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{challenge.participants || 0}</span>
-                            <span style={styles.statLabel}>Participants</span>
-                        </div>
+                    <div style={styles.statItem}>
+                        <FaUsers style={styles.statIcon} />
+                        <span>{challenge.participants || 0} participants</span>
                     </div>
-                    <div style={styles.stat}>
-                        <FaHeart style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{challenge.likes || 0}</span>
-                            <span style={styles.statLabel}>Likes</span>
-                        </div>
+                    <div style={styles.statItem}>
+                        <FaHeart style={styles.statIcon} />
+                        <span>{challenge.likes || 0} likes</span>
                     </div>
-                    <div style={styles.stat}>
-                        <FaComment style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{challenge.comments?.length || 0}</span>
-                            <span style={styles.statLabel}>Comments</span>
-                        </div>
+                    <div style={styles.statItem}>
+                        <FaComment style={styles.statIcon} />
+                        <span>{challenge.comments?.length || 0} comments</span>
                     </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div style={styles.actionButtons}>
                     <button 
                         onClick={() => toggleLike(challenge.id)}
                         style={{
                             ...styles.actionButton,
-                            backgroundColor: likedChallenges.includes(challenge.id) ? 'rgba(255, 107, 107, 0.1)' : '#f8f9fa'
+                            color: likedChallenges.includes(challenge.id) ? '#ff6b6b' : '#666'
                         }}
-                        className="action-button"
                     >
                         {likedChallenges.includes(challenge.id) ? 
-                            <FaHeart style={{ ...styles.actionIcon, color: '#ff6b6b' }} /> : 
+                            <FaHeart style={styles.actionIcon} /> : 
                             <FaRegHeart style={styles.actionIcon} />
                         }
                         <span>Like</span>
@@ -320,31 +359,23 @@ function AllChallengers() {
                     <button 
                         onClick={() => toggleCommentInput(challenge.id)}
                         style={styles.actionButton}
-                        className="action-button"
                     >
                         <FaComment style={styles.actionIcon} />
                         <span>Comment</span>
                     </button>
                     
                     <button 
-                        onClick={() => toggleSave(challenge.id)}
-                        style={{
-                            ...styles.actionButton,
-                            backgroundColor: savedChallenges.includes(challenge.id) ? 'rgba(58, 134, 255, 0.1)' : '#f8f9fa'
-                        }}
-                        className="action-button"
+                        onClick={() => navigate(`/challenge/${challenge.id}`)}
+                        style={styles.viewDetailsButton}
                     >
-                        {savedChallenges.includes(challenge.id) ? 
-                            <FaBookmark style={{ ...styles.actionIcon, color: '#3a86ff' }} /> : 
-                            <FaRegBookmark style={styles.actionIcon} />
-                        }
-                        <span>Save</span>
+                        View Full Details
+                        <FaChevronRight style={{ fontSize: '0.8rem', marginLeft: '5px' }} />
                     </button>
                 </div>
-                
+
                 {/* Comment Input */}
                 {showCommentInput === challenge.id && (
-                    <div style={styles.commentInputContainer} className="comment-input-container">
+                    <div style={styles.commentInputContainer}>
                         <textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
@@ -354,10 +385,32 @@ function AllChallengers() {
                         <button 
                             onClick={() => handleCommentSubmit(challenge.id)}
                             style={styles.submitButton}
-                            className="submit-button"
                         >
                             Post Comment
                         </button>
+                    </div>
+                )}
+
+                {/* Comments Section */}
+                {challenge.comments && challenge.comments.length > 0 && (
+                    <div style={styles.commentsSection}>
+                        {challenge.comments.slice(0, 2).map((comment, index) => (
+                            <div key={index} style={styles.commentItem}>
+                                <div style={styles.commentHeader}>
+                                    <FaUser style={styles.commentAvatar} />
+                                    <span style={styles.commentAuthor}>User {comment.userId}</span>
+                                </div>
+                                <p style={styles.commentText}>{comment.text}</p>
+                            </div>
+                        ))}
+                        {challenge.comments.length > 2 && (
+                            <button 
+                                onClick={() => navigate(`/challenge/${challenge.id}`)}
+                                style={styles.viewAllComments}
+                            >
+                                View all {challenge.comments.length} comments
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -467,30 +520,97 @@ function AllChallengers() {
             gap: '12px',
             padding: '0 20px'
         },
-        challengeCard: {
+        feedContainer: {
+            maxWidth: '800px',
+            margin: '0 auto',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '40px'
+        },
+        feedSection: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '30px'
+        },
+        feedCard: {
             background: '#fff',
-            borderRadius: '20px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+            borderRadius: '15px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
             overflow: 'hidden',
-            transition: 'all 0.3s ease',
-            marginBottom: '30px',
-            position: 'relative',
-            transform: 'translateY(0)',
-            ':hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 15px 35px rgba(0,0,0,0.12)'
-            }
+            transition: 'all 0.3s ease'
+        },
+        cardHeader: {
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            borderBottom: '1px solid #eee'
+        },
+        userInfo: {
+            display: 'flex',
+            gap: '15px',
+            alignItems: 'flex-start'
+        },
+        avatarContainer: {
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        avatarIcon: {
+            color: 'white',
+            fontSize: '1.5rem'
+        },
+        userDetails: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px'
+        },
+        challengeTitle: {
+            fontSize: '1.8rem',
+            fontWeight: '700',
+            color: '#333',
+            margin: '0 0 8px 0',
+            lineHeight: '1.3',
+            letterSpacing: '-0.5px'
+        },
+        challengeMeta: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px',
+            color: '#666',
+            fontSize: '0.9rem'
+        },
+        metaIcon: {
+            color: '#3a86ff',
+            fontSize: '0.9rem'
+        },
+        headerActions: {
+            display: 'flex',
+            gap: '10px'
+        },
+        iconButton: {
+            background: 'none',
+            border: 'none',
+            padding: '8px',
+            cursor: 'pointer',
+            color: '#666',
+            transition: 'all 0.2s ease',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
         },
         imageContainer: {
             width: '100%',
-            height: '280px',
+            height: '400px',
             position: 'relative',
-            overflow: 'hidden'
-        },
-        imageWrapper: {
-            width: '100%',
-            height: '100%',
-            position: 'relative'
+            overflow: 'hidden',
+            cursor: 'pointer'
         },
         challengeImage: {
             width: '100%',
@@ -498,13 +618,188 @@ function AllChallengers() {
             objectFit: 'cover',
             transition: 'transform 0.3s ease'
         },
-        imageOverlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3))'
+        cardContent: {
+            padding: '20px'
+        },
+        descriptionContainer: {
+            marginBottom: '20px',
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '20px'
+        },
+        detailsHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '15px'
+        },
+        detailsIcon: {
+            color: '#FF6B6B',
+            fontSize: '1.2rem'
+        },
+        detailsTitle: {
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            color: '#333'
+        },
+        descriptionText: {
+            marginBottom: '15px'
+        },
+        challengeDescription: {
+            color: '#555',
+            fontSize: '1rem',
+            lineHeight: '1.6',
+            marginBottom: '15px',
+            whiteSpace: 'pre-wrap'
+        },
+        rulesSection: {
+            marginTop: '20px',
+            paddingTop: '20px',
+            borderTop: '1px solid #eee'
+        },
+        rulesText: {
+            color: '#666',
+            fontSize: '0.95rem',
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap'
+        },
+        readMoreButton: {
+            display: 'flex',
+            alignItems: 'center',
+            background: 'none',
+            border: 'none',
+            color: '#3a86ff',
+            cursor: 'pointer',
+            padding: '8px 0',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+        },
+        statsContainer: {
+            display: 'flex',
+            gap: '20px',
+            padding: '15px 0',
+            borderTop: '1px solid #eee',
+            borderBottom: '1px solid #eee',
+            marginBottom: '20px'
+        },
+        statItem: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#666',
+            fontSize: '0.9rem'
+        },
+        statIcon: {
+            color: '#ff6b6b',
+            fontSize: '1.1rem'
+        },
+        actionButtons: {
+            display: 'flex',
+            gap: '10px',
+            marginBottom: '20px'
+        },
+        actionButton: {
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '12px',
+            border: 'none',
+            borderRadius: '8px',
+            background: '#f8f9fa',
+            color: '#666',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontSize: '0.95rem',
+            fontWeight: '500'
+        },
+        actionIcon: {
+            fontSize: '1.1rem'
+        },
+        viewDetailsButton: {
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '12px',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+            color: 'white',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontSize: '0.95rem',
+            fontWeight: '500'
+        },
+        commentInputContainer: {
+            marginTop: '20px',
+            animation: 'slideDown 0.3s ease'
+        },
+        commentInput: {
+            width: '100%',
+            padding: '15px',
+            border: '2px solid #eee',
+            borderRadius: '12px',
+            marginBottom: '10px',
+            resize: 'vertical',
+            minHeight: '80px',
+            fontSize: '0.95rem',
+            transition: 'all 0.3s ease'
+        },
+        submitButton: {
+            width: '100%',
+            padding: '12px',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+            color: 'white',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontSize: '0.95rem',
+            fontWeight: '500'
+        },
+        commentsSection: {
+            marginTop: '20px',
+            paddingTop: '20px',
+            borderTop: '1px solid #eee'
+        },
+        commentItem: {
+            marginBottom: '15px'
+        },
+        commentHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '5px'
+        },
+        commentAvatar: {
+            color: '#666',
+            fontSize: '1.2rem'
+        },
+        commentAuthor: {
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            color: '#333'
+        },
+        commentText: {
+            fontSize: '0.95rem',
+            color: '#555',
+            margin: 0,
+            paddingLeft: '30px'
+        },
+        viewAllComments: {
+            background: 'none',
+            border: 'none',
+            color: '#3a86ff',
+            cursor: 'pointer',
+            padding: '5px 0',
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            width: '100%',
+            textAlign: 'left'
         },
         placeholderImage: {
             width: '100%',
@@ -519,171 +814,19 @@ function AllChallengers() {
             fontSize: '4rem',
             opacity: 0.8
         },
-        challengeContent: {
-            padding: '25px'
-        },
-        titleSection: {
-            marginBottom: '20px',
-            paddingBottom: '15px',
-            borderBottom: '1px solid #eee'
-        },
-        challengeTitle: {
-            fontSize: '1.8rem',
-            color: '#333',
-            marginBottom: '12px',
-            fontWeight: '700',
-            lineHeight: '1.3',
-            letterSpacing: '-0.5px'
-        },
-        dateContainer: {
+        loadingContainer: {
             display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#666'
-        },
-        dateIcon: {
-            color: '#3a86ff',
-            fontSize: '1.1rem'
-        },
-        dateText: {
-            fontSize: '0.95rem',
-            fontWeight: '500'
-        },
-        detailsSection: {
-            marginBottom: '20px',
-            padding: '15px',
-            background: '#f8f9fa',
-            borderRadius: '12px'
-        },
-        detailsHeader: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            marginBottom: '12px'
-        },
-        detailsIcon: {
-            color: '#FF6B6B',
-            fontSize: '1.2rem'
-        },
-        detailsTitle: {
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            color: '#333'
-        },
-        challengeDescription: {
-            color: '#555',
-            lineHeight: '1.6',
-            fontSize: '1rem',
-            marginBottom: '0'
-        },
-        rulesSection: {
-            marginBottom: '20px',
-            padding: '15px',
-            background: '#fff',
-            borderRadius: '12px',
-            border: '1px solid #eee'
-        },
-        rulesText: {
-            color: '#666',
-            lineHeight: '1.6',
-            fontSize: '0.95rem',
-            marginBottom: '0'
-        },
-        statsContainer: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '15px',
-            marginBottom: '25px',
-            padding: '15px',
-            background: '#f8f9fa',
-            borderRadius: '12px'
-        },
-        stat: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            flex: 1
-        },
-        statContent: {
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        statValue: {
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            color: '#333'
-        },
-        statLabel: {
-            fontSize: '0.85rem',
-            color: '#666'
-        },
-        statIcon: {
-            color: '#FF6B6B',
-            fontSize: '1.3rem'
-        },
-        actionButtons: {
-            display: 'flex',
-            gap: '12px',
-            marginBottom: '20px'
-        },
-        actionButton: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 20px',
-            border: 'none',
-            borderRadius: '25px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            fontSize: '0.95rem',
-            color: '#666',
-            flex: 1,
             justifyContent: 'center',
-            fontWeight: '500'
+            alignItems: 'center',
+            minHeight: '200px'
         },
-        actionIcon: {
-            fontSize: '1.1rem'
-        },
-        commentInputContainer: {
-            marginTop: '20px',
-            animation: 'slideDown 0.3s ease'
-        },
-        commentInput: {
-            width: '100%',
-            padding: '15px',
-            border: '2px solid #eee',
-            borderRadius: '15px',
-            marginBottom: '15px',
-            resize: 'vertical',
-            minHeight: '100px',
-            fontSize: '0.95rem',
-            transition: 'all 0.3s ease',
-            ':focus': {
-                borderColor: '#3a86ff',
-                boxShadow: '0 0 0 3px rgba(58, 134, 255, 0.1)'
-            }
-        },
-        submitButton: {
-            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
-            color: 'white',
-            border: 'none',
-            padding: '12px 25px',
-            borderRadius: '25px',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            fontSize: '1rem',
-            fontWeight: '600',
-            width: '100%',
-            ':hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 5px 15px rgba(255, 107, 107, 0.3)'
-            }
-        },
-        statusBadge: {
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            zIndex: '2'
+        loadingSpinner: {
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #FF6B6B',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            animation: 'spin 1s linear infinite'
         },
         upcomingBadge: {
             background: 'rgba(25, 118, 210, 0.1)',
@@ -711,20 +854,6 @@ function AllChallengers() {
             fontSize: '0.85rem',
             fontWeight: '600',
             backdropFilter: 'blur(5px)'
-        },
-        loadingContainer: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '200px'
-        },
-        loadingSpinner: {
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #FF6B6B',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            animation: 'spin 1s linear infinite'
         }
     };
 
@@ -741,10 +870,10 @@ function AllChallengers() {
             <Navbar />
             <div style={styles.container}>
                 <div style={styles.header}>
-                    <h1 style={styles.title}>All Challenges</h1>
-                    <p style={styles.subtitle}>Discover and participate in exciting cooking challenges</p>
+                    <h1 style={styles.title}>Cooking Challenges</h1>
+                    <p style={styles.subtitle}>Join the culinary adventure</p>
                     
-                    {/* Search and Sort Container */}
+                    {/* Search and Sort */}
                     <div style={styles.searchAndSortContainer}>
                         <div style={styles.searchContainer}>
                             <FaSearch style={styles.searchIcon} />
@@ -788,61 +917,49 @@ function AllChallengers() {
                     </div>
                 </div>
 
-                {/* Active Challenges */}
-                {activeChallenges.length > 0 && (
-                    <div>
-                        <h2 style={styles.sectionTitle}>
-                            <FaFireAlt style={{ color: '#ff6b6b' }} />
-                            Active Challenges
-                        </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', padding: '0 20px' }}>
+                {/* Feed Container */}
+                <div style={styles.feedContainer}>
+                    {/* Active Challenges */}
+                    {activeChallenges.length > 0 && (
+                        <div style={styles.feedSection}>
+                            <h2 style={styles.sectionTitle}>
+                                <FaFireAlt style={{ color: '#ff6b6b' }} />
+                                Active Challenges
+                            </h2>
                             {activeChallenges.map(challenge => renderChallengeCard(challenge))}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Upcoming Challenges */}
-                {upcomingChallenges.length > 0 && (
-                    <div style={{ marginTop: '40px' }}>
-                        <h2 style={styles.sectionTitle}>
-                            <FaClock style={{ color: '#3a86ff' }} />
-                            Upcoming Challenges
-                        </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', padding: '0 20px' }}>
+                    {/* Upcoming Challenges */}
+                    {upcomingChallenges.length > 0 && (
+                        <div style={styles.feedSection}>
+                            <h2 style={styles.sectionTitle}>
+                                <FaClock style={{ color: '#3a86ff' }} />
+                                Upcoming Challenges
+                            </h2>
                             {upcomingChallenges.map(challenge => renderChallengeCard(challenge))}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Past Challenges */}
-                {pastChallenges.length > 0 && (
-                    <div style={{ marginTop: '40px' }}>
-                        <h2 style={styles.sectionTitle}>
-                            <FaTrophy style={{ color: '#FFA500' }} />
-                            Past Challenges
-                        </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', padding: '0 20px' }}>
+                    {/* Past Challenges */}
+                    {pastChallenges.length > 0 && (
+                        <div style={styles.feedSection}>
+                            <h2 style={styles.sectionTitle}>
+                                <FaTrophy style={{ color: '#FFA500' }} />
+                                Past Challenges
+                            </h2>
                             {pastChallenges.map(challenge => renderChallengeCard(challenge))}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {challenges.length === 0 && !loading && (
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '60px 40px',
-                        background: '#fff',
-                        borderRadius: '20px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-                        margin: '40px 20px'
-                    }}>
-                        <FaTrophy style={{ fontSize: '4rem', color: '#FFA500', marginBottom: '25px' }} />
-                        <h2 style={{ color: '#333', marginBottom: '15px', fontSize: '1.8rem' }}>No Challenges Found</h2>
-                        <p style={{ color: '#666', marginBottom: '20px', fontSize: '1.1rem' }}>
-                            There are no cooking challenges available right now. Check back later!
-                        </p>
-                    </div>
-                )}
+                    {challenges.length === 0 && !loading && (
+                        <div style={styles.noResultsContainer}>
+                            <FaTrophy style={styles.noResultsIcon} />
+                            <h2>No Challenges Found</h2>
+                            <p>Try adjusting your search or check back later for new challenges.</p>
+                        </div>
+                    )}
+                </div>
             </div>
             <ToastContainer />
             
@@ -858,13 +975,17 @@ function AllChallengers() {
                         to { opacity: 1; transform: translateY(0); }
                     }
                     
-                    .challenge-card:hover {
+                    .feed-card {
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .feed-card:hover {
                         transform: translateY(-5px);
                         box-shadow: 0 15px 35px rgba(0,0,0,0.12);
                     }
                     
-                    .challenge-card:hover .challengeImage {
-                        transform: scale(1.05);
+                    .feed-card:hover .challengeImage {
+                        transform: scale(1.02);
                     }
                     
                     .action-button:hover {
@@ -872,9 +993,9 @@ function AllChallengers() {
                         transform: translateY(-2px);
                     }
                     
-                    .submit-button:hover {
+                    .view-details-button:hover {
+                        background: linear-gradient(45deg, #FF6B6B, #FFA500);
                         transform: translateY(-2px);
-                        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
                     }
                     
                     .comment-input-container {
