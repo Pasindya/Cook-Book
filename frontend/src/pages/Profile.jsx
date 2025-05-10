@@ -85,8 +85,13 @@ function Profile() {
   };
 
   const loadJoinedChallenges = () => {
-    const joined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
-    setJoinedChallenges(joined);
+    try {
+      const joined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
+      setJoinedChallenges(joined);
+    } catch (error) {
+      console.error('Error loading joined challenges:', error);
+      toast.error('Failed to load joined challenges');
+    }
   };
 
   const handleImageUpload = (type) => {
@@ -97,6 +102,19 @@ function Profile() {
   const getImageUrl = (recipeImage) => {
     if (!recipeImage) return 'https://via.placeholder.com/400x250?text=Recipe+Image';
     return `http://localhost:8080/api/recipes/images/${recipeImage}`;
+  };
+
+  // Add this function to format dates
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   return (
@@ -329,18 +347,38 @@ function Profile() {
                   </div>
                 ) : (
                   joinedChallenges.map((challenge, idx) => (
-                    <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">{challenge.ChallengeTitle}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{challenge.challengeDetails}</p>
-                      <div className="flex items-center text-sm text-gray-500 mb-2">
-                        <FaCalendarAlt className="mr-1" />
-                        <span>{challenge.startDate} - {challenge.endDate}</span>
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                    >
+                      {challenge.challengeImage ? (
+                        <img
+                          src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
+                          alt={challenge.ChallengeTitle}
+                          className="w-full h-48 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gradient-to-r from-rose-400 to-orange-400 flex items-center justify-center">
+                          <FaUtensils className="text-white text-4xl" />
+                        </div>
+                      )}
+                      <div className="p-6">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">{challenge.ChallengeTitle}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{challenge.challengeDetails}</p>
+                        
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                          <FaCalendarAlt className="mr-2" />
+                          <span>{formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}</span>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Rules:</h4>
+                          <p className="text-gray-600 text-sm">{challenge.rules}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center text-sm text-gray-500 mb-2">
-                        <FaUtensils className="mr-1" />
-                        <span>Rules: {challenge.rules}</span>
-                      </div>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
