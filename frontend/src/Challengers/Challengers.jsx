@@ -187,7 +187,7 @@ function Challengers() {
                         justifyContent: 'center'
                     }}>
                         <button 
-                            onClick={() => navigate('/displaychallengers')}
+                            onClick={() => navigate('/allchallengers')}
                             style={{
                                 background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
                                 color: 'white',
@@ -441,7 +441,7 @@ function Challengers() {
                             Be the first to create an exciting cooking challenge! Inspire others with your culinary creativity.
                         </p>
                         <button 
-                            onClick={() => navigate('/displaychallengers')}
+                            onClick={() => navigate('/allchallengers')}
                             style={{
                                 background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
                                 color: 'white',
