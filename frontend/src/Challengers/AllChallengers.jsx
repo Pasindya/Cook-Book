@@ -240,36 +240,67 @@ function AllChallengers() {
             
             {/* Challenge Content */}
             <div style={styles.challengeContent}>
-                <h3 style={styles.challengeTitle}>{challenge.ChallengeTitle}</h3>
-                
-                <div style={styles.dateContainer}>
-                    <FaCalendarAlt style={styles.dateIcon} />
-                    <span style={styles.dateText}>
-                        {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
-                    </span>
+                {/* Title Section */}
+                <div style={styles.titleSection}>
+                    <h3 style={styles.challengeTitle}>{challenge.ChallengeTitle}</h3>
+                    <div style={styles.dateContainer}>
+                        <FaCalendarAlt style={styles.dateIcon} />
+                        <span style={styles.dateText}>
+                            {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
+                        </span>
+                    </div>
                 </div>
+
+                {/* Challenge Details */}
+                <div style={styles.detailsSection}>
+                    <div style={styles.detailsHeader}>
+                        <FaUtensils style={styles.detailsIcon} />
+                        <span style={styles.detailsTitle}>Challenge Details</span>
+                    </div>
+                    <p style={styles.challengeDescription}>
+                        {challenge.challengeDetails}
+                    </p>
+                </div>
+
+                {/* Rules Section */}
+                {challenge.Rules && (
+                    <div style={styles.rulesSection}>
+                        <div style={styles.detailsHeader}>
+                            <FaLeaf style={styles.detailsIcon} />
+                            <span style={styles.detailsTitle}>Rules & Guidelines</span>
+                        </div>
+                        <p style={styles.rulesText}>
+                            {challenge.Rules}
+                        </p>
+                    </div>
+                )}
                 
-                <p style={styles.challengeDescription}>
-                    {challenge.challengeDetails}
-                </p>
-                
-                {/* Challenge Stats with Icons */}
+                {/* Challenge Stats */}
                 <div style={styles.statsContainer}>
                     <div style={styles.stat}>
                         <FaUsers style={styles.statIcon} /> 
-                        <span>{challenge.participants || 0} Participants</span>
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{challenge.participants || 0}</span>
+                            <span style={styles.statLabel}>Participants</span>
+                        </div>
                     </div>
                     <div style={styles.stat}>
                         <FaHeart style={styles.statIcon} /> 
-                        <span>{challenge.likes || 0} Likes</span>
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{challenge.likes || 0}</span>
+                            <span style={styles.statLabel}>Likes</span>
+                        </div>
                     </div>
                     <div style={styles.stat}>
                         <FaComment style={styles.statIcon} /> 
-                        <span>{challenge.comments?.length || 0} Comments</span>
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{challenge.comments?.length || 0}</span>
+                            <span style={styles.statLabel}>Comments</span>
+                        </div>
                     </div>
                 </div>
                 
-                {/* Action Buttons with Hover Effects */}
+                {/* Action Buttons */}
                 <div style={styles.actionButtons}>
                     <button 
                         onClick={() => toggleLike(challenge.id)}
@@ -311,7 +342,7 @@ function AllChallengers() {
                     </button>
                 </div>
                 
-                {/* Comment Input with Animation */}
+                {/* Comment Input */}
                 {showCommentInput === challenge.id && (
                     <div style={styles.commentInputContainer} className="comment-input-container">
                         <textarea
@@ -491,18 +522,23 @@ function AllChallengers() {
         challengeContent: {
             padding: '25px'
         },
+        titleSection: {
+            marginBottom: '20px',
+            paddingBottom: '15px',
+            borderBottom: '1px solid #eee'
+        },
         challengeTitle: {
-            fontSize: '1.5rem',
+            fontSize: '1.8rem',
             color: '#333',
-            marginBottom: '15px',
-            fontWeight: '600',
-            lineHeight: '1.3'
+            marginBottom: '12px',
+            fontWeight: '700',
+            lineHeight: '1.3',
+            letterSpacing: '-0.5px'
         },
         dateContainer: {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            marginBottom: '15px',
             color: '#666'
         },
         dateIcon: {
@@ -510,43 +546,91 @@ function AllChallengers() {
             fontSize: '1.1rem'
         },
         dateText: {
-            fontSize: '0.95rem'
+            fontSize: '0.95rem',
+            fontWeight: '500'
+        },
+        detailsSection: {
+            marginBottom: '20px',
+            padding: '15px',
+            background: '#f8f9fa',
+            borderRadius: '12px'
+        },
+        detailsHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '12px'
+        },
+        detailsIcon: {
+            color: '#FF6B6B',
+            fontSize: '1.2rem'
+        },
+        detailsTitle: {
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            color: '#333'
         },
         challengeDescription: {
             color: '#555',
             lineHeight: '1.6',
+            fontSize: '1rem',
+            marginBottom: '0'
+        },
+        rulesSection: {
             marginBottom: '20px',
-            fontSize: '1rem'
+            padding: '15px',
+            background: '#fff',
+            borderRadius: '12px',
+            border: '1px solid #eee'
+        },
+        rulesText: {
+            color: '#666',
+            lineHeight: '1.6',
+            fontSize: '0.95rem',
+            marginBottom: '0'
         },
         statsContainer: {
             display: 'flex',
-            gap: '25px',
+            justifyContent: 'space-between',
+            gap: '15px',
             marginBottom: '25px',
-            padding: '15px 0',
-            borderTop: '1px solid #eee',
-            borderBottom: '1px solid #eee'
+            padding: '15px',
+            background: '#f8f9fa',
+            borderRadius: '12px'
         },
         stat: {
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            color: '#666',
-            fontSize: '0.95rem'
+            gap: '10px',
+            flex: 1
+        },
+        statContent: {
+            display: 'flex',
+            flexDirection: 'column'
+        },
+        statValue: {
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            color: '#333'
+        },
+        statLabel: {
+            fontSize: '0.85rem',
+            color: '#666'
         },
         statIcon: {
             color: '#FF6B6B',
-            fontSize: '1.1rem'
+            fontSize: '1.3rem'
         },
         actionButtons: {
             display: 'flex',
-            gap: '15px',
+            gap: '12px',
             marginBottom: '20px'
         },
         actionButton: {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '10px 20px',
+            padding: '12px 20px',
             border: 'none',
             borderRadius: '25px',
             cursor: 'pointer',
@@ -554,7 +638,8 @@ function AllChallengers() {
             fontSize: '0.95rem',
             color: '#666',
             flex: 1,
-            justifyContent: 'center'
+            justifyContent: 'center',
+            fontWeight: '500'
         },
         actionIcon: {
             fontSize: '1.1rem'

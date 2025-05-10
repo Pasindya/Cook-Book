@@ -86,13 +86,23 @@ function DisplayChallengers() {
                 throw new Error('No data received from server');
             }
             
+            console.log('Raw challenge data from server:', response.data); // Debug log
+            
             // Transform data to ensure proper formatting
-            const formattedChallenges = response.data.map(challenge => ({
-                ...challenge,
-                startDate: challenge.startDate || new Date().toISOString().split('T')[0],
-                endDate: challenge.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                challengeImage: challenge.challengeImage || null
-            }));
+            const formattedChallenges = response.data.map(challenge => {
+                console.log('Processing challenge:', challenge); // Debug log for each challenge
+                const formattedChallenge = {
+                    ...challenge,
+                    ChallengeTitle: challenge.ChallengeTitle || challenge.challengeTitle, // Try both cases
+                    startDate: challenge.startDate || new Date().toISOString().split('T')[0],
+                    endDate: challenge.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    challengeImage: challenge.challengeImage || null
+                };
+                console.log('Formatted challenge:', formattedChallenge); // Debug log for formatted challenge
+                return formattedChallenge;
+            });
+            
+            console.log('All formatted challenges:', formattedChallenges); // Debug log
             
             setChallenges(formattedChallenges);
             setFilteredChallenges(formattedChallenges);
@@ -740,761 +750,641 @@ const ChallengeCard = ({
     toggleParticipants,
     handleJoinChallenge
 }) => {
+    console.log('Rendering challenge card with data:', challenge); // Debug log for card rendering
     return (
-        <div key={challenge.id} style={{
-            background: '#fff',
-            borderRadius: '16px',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.08)',
-            overflow: 'hidden',
-            transition: 'all 0.3s ease',
-            position: 'relative',
-            ':hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.15)'
-            }
-        }}>
-            {/* Challenge Status Badge */}
-            <div style={{
-                position: 'absolute',
-                top: '15px',
-                right: '15px',
-                zIndex: '1'
-            }}>
+        <div key={challenge.id} style={styles.challengeCard}>
+            {/* Status Badge */}
+            <div style={styles.statusBadge}>
                 {getStatusBadge(challenge.startDate, challenge.endDate)}
             </div>
             
             {/* Three Dots Menu */}
-            <div style={{
-                position: 'absolute',
-                top: '15px',
-                left: '15px',
-                zIndex: '2'
-            }}>
+            <div style={styles.menuContainer}>
                 <button 
                     onClick={(e) => toggleMenu(challenge.id, e)}
-                    style={{
-                        background: 'rgba(255,255,255,0.9)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '36px',
-                        height: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            background: '#f0f0f0'
-                        }
-                    }}
+                    style={styles.menuButton}
                 >
                     <FaEllipsisH />
                 </button>
                 
                 {showMenu === challenge.id && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '40px',
-                        left: '0',
-                        background: '#fff',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        width: '160px',
-                        overflow: 'hidden',
-                        zIndex: '10',
-                        animation: 'fadeIn 0.2s ease'
-                    }}>
-                        <button onClick={() => handleUpdate(challenge.id)}
-                        style={{
-                            width: '100%',
-                            padding: '10px 15px',
-                            border: 'none',
-                            background: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            color: '#333',
-                            ':hover': {
-                                background: '#f5f5f5'
-                            }
-                        }}>
+                    <div style={styles.menuDropdown}>
+                        <button 
+                            onClick={() => handleUpdate(challenge.id)}
+                            style={styles.menuItem}
+                        >
                             <FaEdit style={{ color: '#3a86ff' }} />
-                            Update
+                            Edit Challenge
                         </button>
                         <button 
                             onClick={() => handleDelete(challenge.id)}
-                            style={{
-                                width: '100%',
-                                padding: '10px 15px',
-                                border: 'none',
-                                background: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                color: '#ff6b6b',
-                                ':hover': {
-                                    background: '#f5f5f5'
-                                }
-                            }}
+                            style={styles.menuItem}
                         >
-                            <FaTrash />
-                            Delete
+                            <FaTrash style={{ color: '#ff6b6b' }} />
+                            Delete Challenge
                         </button>
                     </div>
                 )}
             </div>
             
             {/* Challenge Image */}
-            <div style={{
-                width: '100%',
-                height: '250px',
-                overflow: 'hidden',
-                position: 'relative',
-                cursor: 'pointer'
-            }} onClick={() => toggleExpand(challenge.id)}>
+            <div style={styles.imageContainer}>
                 {challenge.challengeImage ? (
-                    <img 
-                        src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
-                        alt={challenge.ChallengeTitle}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            transition: 'transform 0.5s ease'
-                        }}
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/400x250?text=Challenge+Image';
-                        }}
-                    />
+                    <div style={styles.imageWrapper}>
+                        <img 
+                            src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
+                            alt={challenge.ChallengeTitle}
+                            style={styles.challengeImage}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/400x250?text=Challenge+Image';
+                            }}
+                        />
+                        <div style={styles.imageOverlay} />
+                    </div>
                 ) : (
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        <FaTrophy style={{ color: 'white', fontSize: '3rem' }} />
+                    <div style={styles.placeholderImage}>
+                        <FaTrophy style={styles.placeholderIcon} />
                     </div>
                 )}
-                <div style={{
-                    position: 'absolute',
-                    bottom: '0',
-                    left: '0',
-                    right: '0',
-                    height: '60px',
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)'
-                }}></div>
             </div>
             
-            {/* Challenge Header */}
-            <div style={{
-                padding: '20px 20px 15px',
-                position: 'relative'
-            }}>
-                <h2 style={{
-                    margin: '0 0 10px',
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    color: '#333',
-                    lineHeight: '1.3',
-                    cursor: 'pointer'
-                }} onClick={() => toggleExpand(challenge.id)}>{challenge.ChallengeTitle}</h2>
+            {/* Challenge Content */}
+            <div style={styles.challengeContent}>
+                {/* Title Section */}
+                <div style={styles.titleSection}>
+                    <h3 style={styles.challengeTitle}>
+                        {challenge.ChallengeTitle || challenge.challengeTitle || 'Untitled Challenge'} {/* Try both cases */}
+                    </h3>
+                    <div style={styles.dateContainer}>
+                        <FaCalendarAlt style={styles.dateIcon} />
+                        <span style={styles.dateText}>
+                            {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Challenge Details */}
+                <div style={styles.detailsSection}>
+                    <div style={styles.detailsHeader}>
+                        <FaUtensils style={styles.detailsIcon} />
+                        <span style={styles.detailsTitle}>Challenge Details</span>
+                    </div>
+                    <p style={styles.challengeDescription}>
+                        {challenge.challengeDetails}
+                    </p>
+                </div>
+
+                {/* Rules Section */}
+                {challenge.Rules && (
+                    <div style={styles.rulesSection}>
+                        <div style={styles.detailsHeader}>
+                            <FaLeaf style={styles.detailsIcon} />
+                            <span style={styles.detailsTitle}>Rules & Guidelines</span>
+                        </div>
+                        <p style={styles.rulesText}>
+                            {challenge.Rules}
+                        </p>
+                    </div>
+                )}
+
+                {/* Prize Information */}
+                {challenge.prizeInfo && (
+                    <div style={styles.prizeSection}>
+                        <div style={styles.detailsHeader}>
+                            <FaTrophy style={styles.detailsIcon} />
+                            <span style={styles.detailsTitle}>Prize Information</span>
+                        </div>
+                        <p style={styles.prizeText}>
+                            {challenge.prizeInfo}
+                        </p>
+                    </div>
+                )}
                 
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '15px',
-                    marginBottom: '15px',
-                    flexWrap: 'wrap'
-                }}>
-                    <span style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        color: '#666',
-                        fontSize: '0.9rem'
-                    }}>
-                        <FaCalendarAlt style={{ color: '#3a86ff' }} />
-                        {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
-                    </span>
+                {/* Challenge Stats */}
+                <div style={styles.statsContainer}>
+                    <div style={styles.stat}>
+                        <FaUsers style={styles.statIcon} /> 
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{participants?.length || 0}</span>
+                            <span style={styles.statLabel}>Participants</span>
+                        </div>
+                    </div>
+                    <div style={styles.stat}>
+                        <FaHeart style={styles.statIcon} /> 
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{challenge.likes || 0}</span>
+                            <span style={styles.statLabel}>Likes</span>
+                        </div>
+                    </div>
+                    <div style={styles.stat}>
+                        <FaComment style={styles.statIcon} /> 
+                        <div style={styles.statContent}>
+                            <span style={styles.statValue}>{challenge.comments?.length || 0}</span>
+                            <span style={styles.statLabel}>Comments</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Participants Section */}
+                {participants && participants.length > 0 && (
+                    <div style={styles.participantsSection}>
+                        <div style={styles.detailsHeader}>
+                            <FaUsers style={styles.detailsIcon} />
+                            <span style={styles.detailsTitle}>Participants</span>
+                            <span style={styles.participantCount}>({participants.length})</span>
+                        </div>
+                        <div style={styles.participantsList}>
+                            {participants.slice(0, 5).map((participant, index) => (
+                                <div key={index} style={styles.participantItem}>
+                                    <FaUser style={styles.participantIcon} />
+                                    <span style={styles.participantName}>{participant.username}</span>
+                                </div>
+                            ))}
+                            {participants.length > 5 && (
+                                <button 
+                                    onClick={() => toggleParticipants(challenge.id)}
+                                    style={styles.viewMoreButton}
+                                >
+                                    View All Participants
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div style={styles.actionButtons}>
+                    <button 
+                        onClick={() => handleJoinChallenge(challenge.id)}
+                        style={styles.joinButton}
+                    >
+                        <FaUsers style={styles.actionIcon} />
+                        <span>Join Challenge</span>
+                    </button>
                     
-                    <span style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        color: '#666',
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                        ':hover': {
-                            color: '#3a86ff'
+                    <button 
+                        onClick={() => toggleLike(challenge.id)}
+                        style={{
+                            ...styles.actionButton,
+                            backgroundColor: likedChallenges.includes(challenge.id) ? 'rgba(255, 107, 107, 0.1)' : '#f8f9fa'
+                        }}
+                    >
+                        {likedChallenges.includes(challenge.id) ? 
+                            <FaHeart style={{ ...styles.actionIcon, color: '#ff6b6b' }} /> : 
+                            <FaRegHeart style={styles.actionIcon} />
                         }
-                    }} onClick={(e) => {
-                        e.stopPropagation();
-                        toggleParticipants(challenge.id);
-                    }}>
-                        <FaUsers style={{ color: '#FFA500' }} />
-                        {participants.length} Participants
-                    </span>
+                        <span>Like</span>
+                    </button>
+                    
+                    <button 
+                        onClick={() => toggleCommentInput(challenge.id)}
+                        style={styles.actionButton}
+                    >
+                        <FaComment style={styles.actionIcon} />
+                        <span>Comment</span>
+                    </button>
+                    
+                    <button 
+                        onClick={() => toggleSave(challenge.id)}
+                        style={{
+                            ...styles.actionButton,
+                            backgroundColor: savedChallenges.includes(challenge.id) ? 'rgba(58, 134, 255, 0.1)' : '#f8f9fa'
+                        }}
+                    >
+                        {savedChallenges.includes(challenge.id) ? 
+                            <FaBookmark style={{ ...styles.actionIcon, color: '#3a86ff' }} /> : 
+                            <FaRegBookmark style={styles.actionIcon} />
+                        }
+                        <span>Save</span>
+                    </button>
                 </div>
                 
-                {/* Participants Popup */}
-                {showParticipants === challenge.id && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: '0',
-                        right: '0',
-                        background: '#fff',
-                        borderRadius: '8px',
-                        boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
-                        padding: '15px',
-                        zIndex: '5',
-                        marginTop: '5px',
-                        animation: 'fadeIn 0.2s ease'
-                    }}>
-                        <h4 style={{
-                            margin: '0 0 10px',
-                            fontSize: '1rem',
-                            color: '#333',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}>
-                            <FaUsers style={{ color: '#FFA500' }} />
-                            Challenge Participants
-                        </h4>
-                        {participants.length > 0 ? (
-                            <div style={{
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                paddingRight: '10px'
-                            }}>
-                                {participants.map((participant, index) => (
-                                    <div key={index} style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        padding: '8px 0',
-                                        borderBottom: '1px solid #f0f0f0'
-                                    }}>
-                                        <div style={{
-                                            width: '30px',
-                                            height: '30px',
-                                            borderRadius: '50%',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            <FaUser style={{ color: '#666', fontSize: '0.8rem' }} />
-                                        </div>
-                                        <span style={{
-                                            fontSize: '0.9rem',
-                                            color: '#333'
-                                        }}>
-                                            {participant.username || `Participant ${index + 1}`}
-                                        </span>
-                                        {participant.isWinner && (
-                                            <span style={{
-                                                marginLeft: 'auto',
-                                                background: '#FFA500',
-                                                color: 'white',
-                                                fontSize: '0.7rem',
-                                                padding: '3px 8px',
-                                                borderRadius: '10px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '3px'
-                                            }}>
-                                                <FaTrophy /> Winner
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p style={{
-                                color: '#666',
-                                fontSize: '0.9rem',
-                                textAlign: 'center',
-                                padding: '10px 0'
-                            }}>
-                                No participants yet. Be the first to join!
-                            </p>
-                        )}
-                        <button 
-                            onClick={() => handleJoinChallenge(challenge.id)}
-                            style={{
-                                background: '#4CAF50',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 15px',
-                                borderRadius: '20px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                marginTop: '15px',
-                                width: '100%',
-                                transition: 'all 0.2s ease',
-                                ':hover': {
-                                    background: '#3e8e41'
-                                }
-                            }}
-                        >
-                            Join Challenge
-                        </button>
-                    </div>
-                )}
-            </div>
-            
-            {/* Challenge Actions */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '0 20px 15px',
-                borderBottom: '1px solid #eee'
-            }}>
-                <button 
-                    onClick={() => toggleLike(challenge.id)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: likedChallenges.includes(challenge.id) ? '#ff6b6b' : '#666',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            transform: 'scale(1.1)'
-                        }
-                    }}
-                >
-                    {likedChallenges.includes(challenge.id) ? <FaHeart /> : <FaRegHeart />}
-                    <span>Like</span>
-                </button>
-                
-                <button 
-                    onClick={() => toggleCommentInput(challenge.id)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: showCommentInput === challenge.id ? '#3a86ff' : '#666',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            transform: 'scale(1.1)',
-                            color: '#3a86ff'
-                        }
-                    }}
-                >
-                    <FaComment />
-                    <span>Comment</span>
-                </button>
-                
-                <button 
-                    onClick={() => toggleReviewInput(challenge.id)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: showReviewInput === challenge.id ? '#FFA500' : '#666',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            transform: 'scale(1.1)',
-                            color: '#FFA500'
-                        }
-                    }}
-                >
-                    <FaStar />
-                    <span>Review</span>
-                </button>
-                
-                <button 
-                    onClick={() => shareChallenge(challenge)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: '#666',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            transform: 'scale(1.1)',
-                            color: '#3a86ff'
-                        }
-                    }}
-                >
-                    <FaShareAlt />
-                    <span>Share</span>
-                </button>
-                
-                <button 
-                    onClick={() => toggleSave(challenge.id)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: savedChallenges.includes(challenge.id) ? '#FFA500' : '#666',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            transform: 'scale(1.1)',
-                            color: '#FFA500'
-                        }
-                    }}
-                >
-                    {savedChallenges.includes(challenge.id) ? <FaBookmark /> : <FaRegBookmark />}
-                    <span>Save</span>
-                </button>
-            </div>
-            
-            {/* Comment Input */}
-            {showCommentInput === challenge.id && (
-                <div style={{
-                    padding: '15px 20px',
-                    borderBottom: '1px solid #eee',
-                    backgroundColor: '#f8f9fa'
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        gap: '10px',
-                        marginBottom: '10px'
-                    }}>
-                        <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            background: '#f0f0f0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: '0'
-                        }}>
-                            <FaUser style={{ color: '#666' }} />
-                        </div>
+                {/* Comment Input */}
+                {showCommentInput === challenge.id && (
+                    <div style={styles.commentInputContainer}>
                         <textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             placeholder="Write a comment..."
-                            style={{
-                                flexGrow: '1',
-                                padding: '10px',
-                                borderRadius: '18px',
-                                border: '1px solid #ddd',
-                                minHeight: '40px',
-                                resize: 'none',
-                                fontFamily: 'inherit',
-                                fontSize: '0.9rem'
-                            }}
+                            style={styles.commentInput}
                         />
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '10px'
-                    }}>
-                        <button
-                            onClick={() => toggleCommentInput(null)}
-                            style={{
-                                background: '#f0f0f0',
-                                color: '#333',
-                                border: 'none',
-                                padding: '8px 15px',
-                                borderRadius: '18px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s ease',
-                                ':hover': {
-                                    background: '#e0e0e0'
-                                }
-                            }}
-                        >
-                            Cancel
-                        </button>
-                        <button
+                        <button 
                             onClick={() => handleCommentSubmit(challenge.id)}
-                            style={{
-                                background: '#3a86ff',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 15px',
-                                borderRadius: '18px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s ease',
-                                ':hover': {
-                                    background: '#2a6fd6'
-                                }
-                            }}
+                            style={styles.submitButton}
                         >
-                            Post
+                            Post Comment
                         </button>
                     </div>
-                </div>
-            )}
-            
-            {/* Review Input */}
-            {showReviewInput === challenge.id && (
-                <div style={{
-                    padding: '15px 20px',
-                    borderBottom: '1px solid #eee',
-                    backgroundColor: '#f8f9fa'
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        gap: '10px',
-                        marginBottom: '10px'
-                    }}>
-                        <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            background: '#f0f0f0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: '0'
-                        }}>
-                            <FaUser style={{ color: '#666' }} />
+                )}
+
+                {/* Review Input */}
+                {showReviewInput === challenge.id && (
+                    <div style={styles.reviewInputContainer}>
+                        <div style={styles.ratingContainer}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <FaStar
+                                    key={star}
+                                    style={{
+                                        ...styles.starIcon,
+                                        color: star <= newReview.rating ? '#FFA500' : '#ddd'
+                                    }}
+                                    onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                                />
+                            ))}
                         </div>
-                        <div style={{ flexGrow: '1' }}>
-                            <div style={{
-                                display: 'flex',
-                                gap: '5px',
-                                marginBottom: '10px'
-                            }}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                        key={star}
-                                        onClick={() => setNewReview({...newReview, rating: star})}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            fontSize: '1.2rem',
-                                            color: star <= newReview.rating ? '#FFA500' : '#ddd'
-                                        }}
-                                    >
-                                        {star <= newReview.rating ? <FaStar /> : <FaRegStar />}
-                                    </button>
-                                ))}
-                            </div>
-                            <textarea
-                                value={newReview.text}
-                                onChange={(e) => setNewReview({...newReview, text: e.target.value})}
-                                placeholder="Write your review..."
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    borderRadius: '18px',
-                                    border: '1px solid #ddd',
-                                    minHeight: '80px',
-                                    resize: 'none',
-                                    fontFamily: 'inherit',
-                                    fontSize: '0.9rem'
-                                }}
-                            />
-                        </div>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '10px'
-                    }}>
-                        <button
-                            onClick={() => toggleReviewInput(null)}
-                            style={{
-                                background: '#f0f0f0',
-                                color: '#333',
-                                border: 'none',
-                                padding: '8px 15px',
-                                borderRadius: '18px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s ease',
-                                ':hover': {
-                                    background: '#e0e0e0'
-                                }
-                            }}
-                        >
-                            Cancel
-                        </button>
-                        <button
+                        <textarea
+                            value={newReview.text}
+                            onChange={(e) => setNewReview(prev => ({ ...prev, text: e.target.value }))}
+                            placeholder="Write your review..."
+                            style={styles.reviewInput}
+                        />
+                        <button 
                             onClick={() => handleReviewSubmit(challenge.id)}
-                            style={{
-                                background: '#FFA500',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 15px',
-                                borderRadius: '18px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s ease',
-                                ':hover': {
-                                    background: '#e69500'
-                                }
-                            }}
+                            style={styles.submitButton}
                         >
                             Submit Review
                         </button>
                     </div>
-                </div>
-            )}
-            
-            {/* Challenge Preview */}
-            <div style={{ padding: '0 20px' }}>
-                <p style={{
-                    color: '#555',
-                    fontSize: '0.95rem',
-                    lineHeight: '1.6',
-                    margin: '15px 0',
-                    display: '-webkit-box',
-                    WebkitLineClamp: '3',
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                }}>{challenge.challengeDetails}</p>
-                
-                <button 
-                    onClick={() => toggleExpand(challenge.id)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#3a86ff',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        padding: '5px 0 15px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '0.95rem',
-                        transition: 'all 0.2s ease',
-                        ':hover': {
-                            color: '#2a6fd6'
-                        }
-                    }}
-                >
-                    <FaEllipsisH />
-                    {expandedChallenge === challenge.id ? 'Show less' : 'Show more'}
-                </button>
+                )}
             </div>
-            
-            {/* Expanded Challenge Details */}
-            {expandedChallenge === challenge.id && (
-                <div style={{
-                    padding: '0 20px 20px',
-                    borderTop: '1px solid #eee',
-                    animation: 'fadeIn 0.3s ease'
-                }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <h3 style={{
-                            fontSize: '1.2rem',
-                            margin: '15px 0 10px',
-                            color: '#333',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingBottom: '5px',
-                            borderBottom: '2px solid #f0f0f0'
-                        }}>
-                            <FaTrophy style={{ color: '#FFA500' }} />
-                            Challenge Details
-                        </h3>
-                        <p style={{
-                            color: '#555',
-                            lineHeight: '1.8',
-                            marginBottom: '15px'
-                        }}>
-                            {challenge.challengeDetails}
-                        </p>
-                    </div>
-                    
-                    <div>
-                        <h3 style={{
-                            fontSize: '1.2rem',
-                            margin: '15px 0 10px',
-                            color: '#333',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingBottom: '5px',
-                            borderBottom: '2px solid #f0f0f0'
-                        }}>
-                            <FaFireAlt style={{ color: '#FF6B6B' }} />
-                            Rules
-                        </h3>
-                        <ul style={{
-                            margin: '0',
-                            paddingLeft: '20px',
-                            color: '#555',
-                            lineHeight: '1.8'
-                        }}>
-                            {challenge.Rules.split('\n').filter(rule => rule.trim()).map((rule, i) => (
-                                <li key={i} style={{ 
-                                    marginBottom: '5px',
-                                    position: 'relative',
-                                    paddingLeft: '20px'
-                                }}>
-                                    <span style={{
-                                        position: 'absolute',
-                                        left: '0',
-                                        color: '#FF6B6B'
-                                    }}>•</span>
-                                    {rule}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    
-                    <div style={{ marginTop: '20px' }}>
-                        <h3 style={{
-                            fontSize: '1.2rem',
-                            margin: '15px 0 10px',
-                            color: '#333',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingBottom: '5px',
-                            borderBottom: '2px solid #f0f0f0'
-                        }}>
-                            <FaAward style={{ color: '#FFA500' }} />
-                            Prize Information
-                        </h3>
-                        <p style={{
-                            color: '#555',
-                            lineHeight: '1.8'
-                        }}>
-                            {challenge.prizeInfo || 'No prize information available.'}
-                        </p>
-                    </div>
-                </div>
-            )}
         </div>
     );
+};
+
+const styles = {
+    challengeCard: {
+        background: '#fff',
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        position: 'relative',
+        marginBottom: '30px'
+    },
+    statusBadge: {
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: '2'
+    },
+    menuContainer: {
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        zIndex: '2'
+    },
+    menuButton: {
+        background: 'rgba(255,255,255,0.9)',
+        border: 'none',
+        borderRadius: '50%',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s ease'
+    },
+    menuDropdown: {
+        position: 'absolute',
+        top: '100%',
+        left: '0',
+        background: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 5px 20px rgba(0,0,0,0.1)',
+        marginTop: '10px',
+        overflow: 'hidden',
+        minWidth: '180px'
+    },
+    menuItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 15px',
+        width: '100%',
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        fontSize: '0.95rem',
+        transition: 'all 0.2s ease',
+        ':hover': {
+            background: '#f8f9fa'
+        }
+    },
+    imageContainer: {
+        width: '100%',
+        height: '280px',
+        position: 'relative',
+        overflow: 'hidden'
+    },
+    imageWrapper: {
+        width: '100%',
+        height: '100%',
+        position: 'relative'
+    },
+    challengeImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        transition: 'transform 0.3s ease'
+    },
+    imageOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3))'
+    },
+    placeholderImage: {
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    placeholderIcon: {
+        color: 'white',
+        fontSize: '4rem',
+        opacity: 0.8
+    },
+    challengeContent: {
+        padding: '25px'
+    },
+    titleSection: {
+        marginBottom: '20px',
+        paddingBottom: '15px',
+        borderBottom: '1px solid #eee'
+    },
+    challengeTitle: {
+        fontSize: '1.8rem',
+        color: '#333',
+        marginBottom: '12px',
+        fontWeight: '700',
+        lineHeight: '1.3',
+        letterSpacing: '-0.5px'
+    },
+    dateContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        color: '#666'
+    },
+    dateIcon: {
+        color: '#3a86ff',
+        fontSize: '1.1rem'
+    },
+    dateText: {
+        fontSize: '0.95rem',
+        fontWeight: '500'
+    },
+    detailsSection: {
+        marginBottom: '20px',
+        padding: '15px',
+        background: '#f8f9fa',
+        borderRadius: '12px'
+    },
+    detailsHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        marginBottom: '12px'
+    },
+    detailsIcon: {
+        color: '#FF6B6B',
+        fontSize: '1.2rem'
+    },
+    detailsTitle: {
+        fontSize: '1.1rem',
+        fontWeight: '600',
+        color: '#333'
+    },
+    challengeDescription: {
+        color: '#555',
+        lineHeight: '1.6',
+        fontSize: '1rem',
+        marginBottom: '0'
+    },
+    rulesSection: {
+        marginBottom: '20px',
+        padding: '15px',
+        background: '#fff',
+        borderRadius: '12px',
+        border: '1px solid #eee'
+    },
+    rulesText: {
+        color: '#666',
+        lineHeight: '1.6',
+        fontSize: '0.95rem',
+        marginBottom: '0'
+    },
+    prizeSection: {
+        marginBottom: '20px',
+        padding: '15px',
+        background: '#fff8e1',
+        borderRadius: '12px',
+        border: '1px solid #ffe0b2'
+    },
+    prizeText: {
+        color: '#666',
+        lineHeight: '1.6',
+        fontSize: '0.95rem',
+        marginBottom: '0'
+    },
+    participantsSection: {
+        marginBottom: '20px',
+        padding: '15px',
+        background: '#f8f9fa',
+        borderRadius: '12px'
+    },
+    participantCount: {
+        fontSize: '0.9rem',
+        color: '#666',
+        marginLeft: '5px'
+    },
+    participantsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+    },
+    participantItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px',
+        background: '#fff',
+        borderRadius: '8px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+    },
+    participantIcon: {
+        color: '#666',
+        fontSize: '1rem'
+    },
+    participantName: {
+        fontSize: '0.95rem',
+        color: '#333'
+    },
+    viewMoreButton: {
+        background: 'none',
+        border: 'none',
+        color: '#3a86ff',
+        fontSize: '0.9rem',
+        cursor: 'pointer',
+        padding: '5px 0',
+        textAlign: 'center',
+        ':hover': {
+            textDecoration: 'underline'
+        }
+    },
+    statsContainer: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '15px',
+        marginBottom: '25px',
+        padding: '15px',
+        background: '#f8f9fa',
+        borderRadius: '12px'
+    },
+    stat: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        flex: 1
+    },
+    statContent: {
+        display: 'flex',
+        flexDirection: 'column'
+    },
+    statValue: {
+        fontSize: '1.1rem',
+        fontWeight: '600',
+        color: '#333'
+    },
+    statLabel: {
+        fontSize: '0.85rem',
+        color: '#666'
+    },
+    statIcon: {
+        color: '#FF6B6B',
+        fontSize: '1.3rem'
+    },
+    actionButtons: {
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '20px'
+    },
+    joinButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '12px 20px',
+        border: 'none',
+        borderRadius: '25px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontSize: '0.95rem',
+        color: 'white',
+        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+        flex: 1,
+        justifyContent: 'center',
+        fontWeight: '500',
+        ':hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 5px 15px rgba(255, 107, 107, 0.3)'
+        }
+    },
+    actionButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '12px 20px',
+        border: 'none',
+        borderRadius: '25px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontSize: '0.95rem',
+        color: '#666',
+        background: '#f8f9fa',
+        flex: 1,
+        justifyContent: 'center',
+        fontWeight: '500',
+        ':hover': {
+            transform: 'translateY(-2px)',
+            background: '#f0f0f0'
+        }
+    },
+    actionIcon: {
+        fontSize: '1.1rem'
+    },
+    commentInputContainer: {
+        marginTop: '20px',
+        animation: 'slideDown 0.3s ease'
+    },
+    commentInput: {
+        width: '100%',
+        padding: '15px',
+        border: '2px solid #eee',
+        borderRadius: '15px',
+        marginBottom: '15px',
+        resize: 'vertical',
+        minHeight: '100px',
+        fontSize: '0.95rem',
+        transition: 'all 0.3s ease',
+        ':focus': {
+            borderColor: '#3a86ff',
+            boxShadow: '0 0 0 3px rgba(58, 134, 255, 0.1)'
+        }
+    },
+    reviewInputContainer: {
+        marginTop: '20px',
+        padding: '15px',
+        background: '#f8f9fa',
+        borderRadius: '12px'
+    },
+    ratingContainer: {
+        display: 'flex',
+        gap: '5px',
+        marginBottom: '15px'
+    },
+    starIcon: {
+        fontSize: '1.5rem',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease'
+    },
+    reviewInput: {
+        width: '100%',
+        padding: '15px',
+        border: '2px solid #eee',
+        borderRadius: '15px',
+        marginBottom: '15px',
+        resize: 'vertical',
+        minHeight: '100px',
+        fontSize: '0.95rem',
+        transition: 'all 0.3s ease',
+        ':focus': {
+            borderColor: '#3a86ff',
+            boxShadow: '0 0 0 3px rgba(58, 134, 255, 0.1)'
+        }
+    },
+    submitButton: {
+        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+        color: 'white',
+        border: 'none',
+        padding: '12px 25px',
+        borderRadius: '25px',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        fontSize: '1rem',
+        fontWeight: '600',
+        width: '100%',
+        ':hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 5px 15px rgba(255, 107, 107, 0.3)'
+        }
+    }
 };
 
 export default DisplayChallengers;
