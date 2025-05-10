@@ -1077,30 +1077,6 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
-                        onClick={() => handleJoinChallenge(challenge.id)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '12px 20px',
-                            border: 'none',
-                            borderRadius: '25px',
-                            cursor: 'pointer',
-                            fontSize: '0.95rem',
-                            color: '#fff',
-                            flex: 1,
-                            justifyContent: 'center',
-                            fontWeight: '500',
-                            backgroundColor: isParticipant ? '#4CAF50' : '#3a86ff',
-                            transition: 'all 0.3s ease'
-                        }}
-                        disabled={isParticipant}
-                    >
-                        <FaUsers />
-                        <span>{isParticipant ? 'Joined' : 'Join Challenge'}</span>
-                    </button>
-                    
-                    <button 
                         onClick={() => toggleSave(challenge.id)}
                         style={{
                             display: 'flex',
