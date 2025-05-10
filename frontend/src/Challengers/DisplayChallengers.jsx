@@ -8,7 +8,7 @@ import {
   FaBookmark, FaFireAlt, FaLeaf, FaBreadSlice,
   FaEdit, FaTrash, FaComment, FaUser,
   FaStar, FaRegStar, FaTrophy, FaCalendarAlt,
-  FaSearch, FaFilter, FaUsers, FaAward
+  FaSearch, FaFilter, FaUsers, FaAward, FaChevronRight
 } from 'react-icons/fa';
 import { GiMeal, GiFruitBowl, GiChickenOven } from 'react-icons/gi';
 import { toast, ToastContainer } from 'react-toastify';
@@ -20,7 +20,7 @@ function DisplayChallengers() {
     const [upcomingChallenges, setUpcomingChallenges] = useState([]);
     const [activeChallenges, setActiveChallenges] = useState([]);
     const [pastChallenges, setPastChallenges] = useState([]);
-    const [expandedChallenge, setExpandedChallenge] = useState(null);
+    const [expandedChallenges, setExpandedChallenges] = useState({});
     const [savedChallenges, setSavedChallenges] = useState([]);
     const [likedChallenges, setLikedChallenges] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -86,30 +86,37 @@ function DisplayChallengers() {
                 throw new Error('No data received from server');
             }
             
-            console.log('Raw challenge data from server:', response.data); // Debug log
-            
             // Transform data to ensure proper formatting
-            const formattedChallenges = response.data.map(challenge => {
-                console.log('Processing challenge:', challenge); // Debug log for each challenge
-                const formattedChallenge = {
-                    ...challenge,
-                    ChallengeTitle: challenge.ChallengeTitle || challenge.challengeTitle, // Try both cases
-                    startDate: challenge.startDate || new Date().toISOString().split('T')[0],
-                    endDate: challenge.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    challengeImage: challenge.challengeImage || null
-                };
-                console.log('Formatted challenge:', formattedChallenge); // Debug log for formatted challenge
-                return formattedChallenge;
-            });
-            
-            console.log('All formatted challenges:', formattedChallenges); // Debug log
+            const formattedChallenges = response.data.map(challenge => ({
+                ...challenge,
+                ChallengeTitle: challenge.ChallengeTitle || challenge.challengeTitle,
+                startDate: challenge.startDate || new Date().toISOString().split('T')[0],
+                endDate: challenge.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                challengeImage: challenge.challengeImage || null,
+                challengeDetails: challenge.challengeDetails || challenge.ChallengeDetails || 'No details provided',
+                rules: challenge.Rules || challenge.rules || 'No rules specified',
+                likes: challenge.likes || 0,
+                participants: challenge.participants || []
+            }));
             
             setChallenges(formattedChallenges);
             setFilteredChallenges(formattedChallenges);
-            setLoading(false);
+            
+            // Categorize challenges
+            const today = new Date().toISOString().split('T')[0];
+            const upcoming = formattedChallenges.filter(challenge => challenge.startDate > today);
+            const active = formattedChallenges.filter(challenge => 
+                challenge.startDate <= today && challenge.endDate >= today
+            );
+            const past = formattedChallenges.filter(challenge => challenge.endDate < today);
+            
+            setUpcomingChallenges(upcoming);
+            setActiveChallenges(active);
+            setPastChallenges(past);
             
             // Load participants for each challenge
             loadParticipants(formattedChallenges);
+            setLoading(false);
         } catch (error) {
             console.error("Error loading challenges:", error);
             toast.error('Failed to load challenges');
@@ -132,7 +139,10 @@ function DisplayChallengers() {
     };
     
     const toggleExpand = (challengeId) => {
-        setExpandedChallenge(expandedChallenge === challengeId ? null : challengeId);
+        setExpandedChallenges(prev => ({
+            ...prev,
+            [challengeId]: !prev[challengeId]
+        }));
     };
 
     const toggleSave = (challengeId) => {
@@ -240,22 +250,11 @@ function DisplayChallengers() {
         }
     };
 
-    const shareChallenge = async (challenge) => {
-        try {
-            if (navigator.share) {
-                await navigator.share({
-                    title: challenge.ChallengeTitle,
-                    text: `Check out this cooking challenge: ${challenge.challengeDetails}`,
-                    url: window.location.href,
-                });
-            } else {
-                await navigator.clipboard.writeText(window.location.href);
-                toast.info('Link copied to clipboard!');
-            }
-        } catch (error) {
-            console.error('Error sharing:', error);
-            toast.error('Failed to share challenge');
-        }
+    const shareChallenge = (challenge) => {
+        const shareUrl = `${window.location.origin}/challenge/${challenge.id}`;
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => toast.success('Challenge link copied to clipboard!'))
+            .catch(() => toast.error('Failed to copy link'));
     };
 
     const handleUpdate = (challengeId) => {
@@ -264,15 +263,16 @@ function DisplayChallengers() {
     
     const handleJoinChallenge = async (challengeId) => {
         try {
-            // In a real app, you would send the current user's ID
-            await axios.post(`http://localhost:8080/api/challenges/${challengeId}/join`, {
-                userId: 'current-user-id' // Replace with actual user ID
-            });
-            toast.success('You have joined this challenge!');
-            // Refresh participants list
-            loadParticipants(challenges);
+            await axios.post(`http://localhost:8080/api/challenges/${challengeId}/join`);
+            toast.success('Successfully joined the challenge!');
+            // Reload participants for this challenge
+            const response = await axios.get(`http://localhost:8080/api/challenges/${challengeId}/participants`);
+            setParticipants(prev => ({
+                ...prev,
+                [challengeId]: response.data
+            }));
         } catch (error) {
-            console.error('Error joining challenge:', error);
+            console.error("Error joining challenge:", error);
             toast.error(error.response?.data || 'Failed to join challenge');
         }
     };
@@ -329,7 +329,7 @@ function DisplayChallengers() {
                         <ChallengeCard 
                             key={challenge.id}
                             challenge={challenge}
-                            expandedChallenge={expandedChallenge}
+                            expandedChallenges={expandedChallenges}
                             toggleExpand={toggleExpand}
                             savedChallenges={savedChallenges}
                             toggleSave={toggleSave}
@@ -722,7 +722,7 @@ function DisplayChallengers() {
 
 const ChallengeCard = ({
     challenge,
-    expandedChallenge,
+    expandedChallenges,
     toggleExpand,
     savedChallenges,
     toggleSave,
@@ -750,263 +750,382 @@ const ChallengeCard = ({
     toggleParticipants,
     handleJoinChallenge
 }) => {
-    console.log('Rendering challenge card with data:', challenge); // Debug log for card rendering
+    const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
+
     return (
-        <div key={challenge.id} style={styles.challengeCard}>
+        <div 
+            style={{
+                background: '#fff',
+                borderRadius: '20px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                overflow: 'hidden',
+                transition: 'all 0.3s ease',
+                position: 'relative'
+            }}
+            className="challenge-card"
+        >
             {/* Status Badge */}
-            <div style={styles.statusBadge}>
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                zIndex: '2'
+            }}>
                 {getStatusBadge(challenge.startDate, challenge.endDate)}
             </div>
             
-            {/* Three Dots Menu */}
-            <div style={styles.menuContainer}>
-                <button 
-                    onClick={(e) => toggleMenu(challenge.id, e)}
-                    style={styles.menuButton}
-                >
-                    <FaEllipsisH />
-                </button>
-                
-                {showMenu === challenge.id && (
-                    <div style={styles.menuDropdown}>
-                        <button 
-                            onClick={() => handleUpdate(challenge.id)}
-                            style={styles.menuItem}
-                        >
-                            <FaEdit style={{ color: '#3a86ff' }} />
-                            Edit Challenge
-                        </button>
-                        <button 
-                            onClick={() => handleDelete(challenge.id)}
-                            style={styles.menuItem}
-                        >
-                            <FaTrash style={{ color: '#ff6b6b' }} />
-                            Delete Challenge
-                        </button>
-                    </div>
-                )}
-            </div>
-            
             {/* Challenge Image */}
-            <div style={styles.imageContainer}>
+            <div style={{
+                width: '100%',
+                height: '280px',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
                 {challenge.challengeImage ? (
-                    <div style={styles.imageWrapper}>
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        position: 'relative'
+                    }}>
                         <img 
                             src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
                             alt={challenge.ChallengeTitle}
-                            style={styles.challengeImage}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'transform 0.3s ease'
+                            }}
                             onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = 'https://via.placeholder.com/400x250?text=Challenge+Image';
                             }}
                         />
-                        <div style={styles.imageOverlay} />
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3))'
+                        }} />
                     </div>
                 ) : (
-                    <div style={styles.placeholderImage}>
-                        <FaTrophy style={styles.placeholderIcon} />
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <FaTrophy style={{
+                            color: 'white',
+                            fontSize: '4rem',
+                            opacity: 0.8
+                        }} />
                     </div>
                 )}
             </div>
             
             {/* Challenge Content */}
-            <div style={styles.challengeContent}>
+            <div style={{
+                padding: '25px'
+            }}>
                 {/* Title Section */}
-                <div style={styles.titleSection}>
-                    <h3 style={styles.challengeTitle}>
-                        {challenge.ChallengeTitle || challenge.challengeTitle || 'Untitled Challenge'} {/* Try both cases */}
+                <div style={{
+                    marginBottom: '20px',
+                    paddingBottom: '15px',
+                    borderBottom: '1px solid #eee'
+                }}>
+                    <h3 style={{
+                        fontSize: '1.8rem',
+                        color: '#333',
+                        marginBottom: '12px',
+                        fontWeight: '700',
+                        lineHeight: '1.3',
+                        letterSpacing: '-0.5px'
+                    }}>
+                        {challenge.ChallengeTitle}
                     </h3>
-                    <div style={styles.dateContainer}>
-                        <FaCalendarAlt style={styles.dateIcon} />
-                        <span style={styles.dateText}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        color: '#666'
+                    }}>
+                        <FaCalendarAlt style={{
+                            color: '#3a86ff',
+                            fontSize: '1.1rem'
+                        }} />
+                        <span style={{
+                            fontSize: '0.95rem',
+                            fontWeight: '500'
+                        }}>
                             {formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}
                         </span>
                     </div>
                 </div>
 
-                {/* Challenge Details */}
-                <div style={styles.detailsSection}>
-                    <div style={styles.detailsHeader}>
-                        <FaUtensils style={styles.detailsIcon} />
-                        <span style={styles.detailsTitle}>Challenge Details</span>
-                    </div>
-                    <p style={styles.challengeDescription}>
-                        {challenge.challengeDetails}
-                    </p>
-                </div>
+                {/* Show More Button */}
+                <button 
+                    onClick={() => toggleExpand(challenge.id)}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 20px',
+                        border: 'none',
+                        borderRadius: '25px',
+                        backgroundColor: '#f8f9fa',
+                        color: '#666',
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        marginBottom: '20px',
+                        transition: 'all 0.3s ease',
+                        width: '100%',
+                        justifyContent: 'center'
+                    }}
+                >
+                    {expandedChallenges[challenge.id] ? 'Show Less' : 'Show More'}
+                    <FaChevronRight style={{ 
+                        transform: expandedChallenges[challenge.id] ? 'rotate(90deg)' : 'none',
+                        transition: 'transform 0.3s ease'
+                    }} />
+                </button>
 
-                {/* Rules Section */}
-                {challenge.Rules && (
-                    <div style={styles.rulesSection}>
-                        <div style={styles.detailsHeader}>
-                            <FaLeaf style={styles.detailsIcon} />
-                            <span style={styles.detailsTitle}>Rules & Guidelines</span>
+                {/* Challenge Details and Rules (Collapsible) */}
+                {expandedChallenges[challenge.id] && (
+                    <>
+                        {/* Challenge Details */}
+                        <div style={{
+                            marginBottom: '20px',
+                            padding: '20px',
+                            background: '#f8f9fa',
+                            borderRadius: '12px',
+                            border: '1px solid #e9ecef'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginBottom: '15px',
+                                paddingBottom: '10px',
+                                borderBottom: '2px solid #e9ecef'
+                            }}>
+                                <FaUtensils style={{
+                                    fontSize: '1.2rem',
+                                    color: '#ff6b6b'
+                                }} />
+                                <span style={{
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600',
+                                    color: '#333'
+                                }}>Challenge Details</span>
+                            </div>
+                            <div style={{
+                                padding: '10px 0'
+                            }}>
+                                <p style={{
+                                    fontSize: '0.95rem',
+                                    lineHeight: '1.6',
+                                    color: '#444',
+                                    margin: 0,
+                                    whiteSpace: 'pre-wrap'
+                                }}>
+                                    {challenge.challengeDetails}
+                                </p>
+                            </div>
                         </div>
-                        <p style={styles.rulesText}>
-                            {challenge.Rules}
-                        </p>
-                    </div>
-                )}
 
-                {/* Prize Information */}
-                {challenge.prizeInfo && (
-                    <div style={styles.prizeSection}>
-                        <div style={styles.detailsHeader}>
-                            <FaTrophy style={styles.detailsIcon} />
-                            <span style={styles.detailsTitle}>Prize Information</span>
+                        {/* Rules Section */}
+                        <div style={{
+                            marginBottom: '20px',
+                            padding: '20px',
+                            background: '#fff8f8',
+                            borderRadius: '12px',
+                            border: '1px solid #ffe0e0'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginBottom: '15px',
+                                paddingBottom: '10px',
+                                borderBottom: '2px solid #ffe0e0'
+                            }}>
+                                <FaLeaf style={{
+                                    fontSize: '1.2rem',
+                                    color: '#ff6b6b'
+                                }} />
+                                <span style={{
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600',
+                                    color: '#333'
+                                }}>Rules & Guidelines</span>
+                            </div>
+                            <div style={{
+                                padding: '10px 0'
+                            }}>
+                                <p style={{
+                                    fontSize: '0.95rem',
+                                    lineHeight: '1.6',
+                                    color: '#444',
+                                    margin: 0,
+                                    whiteSpace: 'pre-wrap'
+                                }}>
+                                    {challenge.rules}
+                                </p>
+                            </div>
                         </div>
-                        <p style={styles.prizeText}>
-                            {challenge.prizeInfo}
-                        </p>
-                    </div>
+                    </>
                 )}
                 
                 {/* Challenge Stats */}
-                <div style={styles.statsContainer}>
-                    <div style={styles.stat}>
-                        <FaUsers style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{participants?.length || 0}</span>
-                            <span style={styles.statLabel}>Participants</span>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '15px',
+                    marginBottom: '25px',
+                    padding: '15px',
+                    background: '#f8f9fa',
+                    borderRadius: '12px'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flex: 1
+                    }}>
+                        <FaUsers style={{
+                            color: '#FF6B6B',
+                            fontSize: '1.3rem'
+                        }} /> 
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <span style={{
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                color: '#333'
+                            }}>{participants?.length || 0}</span>
+                            <span style={{
+                                fontSize: '0.85rem',
+                                color: '#666'
+                            }}>Participants</span>
                         </div>
                     </div>
-                    <div style={styles.stat}>
-                        <FaHeart style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{challenge.likes || 0}</span>
-                            <span style={styles.statLabel}>Likes</span>
-                        </div>
-                    </div>
-                    <div style={styles.stat}>
-                        <FaComment style={styles.statIcon} /> 
-                        <div style={styles.statContent}>
-                            <span style={styles.statValue}>{challenge.comments?.length || 0}</span>
-                            <span style={styles.statLabel}>Comments</span>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flex: 1
+                    }}>
+                        <FaHeart style={{
+                            color: '#FF6B6B',
+                            fontSize: '1.3rem'
+                        }} /> 
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <span style={{
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                color: '#333'
+                            }}>{challenge.likes || 0}</span>
+                            <span style={{
+                                fontSize: '0.85rem',
+                                color: '#666'
+                            }}>Likes</span>
                         </div>
                     </div>
                 </div>
-
-                {/* Participants Section */}
-                {participants && participants.length > 0 && (
-                    <div style={styles.participantsSection}>
-                        <div style={styles.detailsHeader}>
-                            <FaUsers style={styles.detailsIcon} />
-                            <span style={styles.detailsTitle}>Participants</span>
-                            <span style={styles.participantCount}>({participants.length})</span>
-                        </div>
-                        <div style={styles.participantsList}>
-                            {participants.slice(0, 5).map((participant, index) => (
-                                <div key={index} style={styles.participantItem}>
-                                    <FaUser style={styles.participantIcon} />
-                                    <span style={styles.participantName}>{participant.username}</span>
-                                </div>
-                            ))}
-                            {participants.length > 5 && (
-                                <button 
-                                    onClick={() => toggleParticipants(challenge.id)}
-                                    style={styles.viewMoreButton}
-                                >
-                                    View All Participants
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
                 
                 {/* Action Buttons */}
-                <div style={styles.actionButtons}>
-                    <button 
-                        onClick={() => handleJoinChallenge(challenge.id)}
-                        style={styles.joinButton}
-                    >
-                        <FaUsers style={styles.actionIcon} />
-                        <span>Join Challenge</span>
-                    </button>
-                    
+                <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    marginBottom: '20px'
+                }}>
                     <button 
                         onClick={() => toggleLike(challenge.id)}
                         style={{
-                            ...styles.actionButton,
-                            backgroundColor: likedChallenges.includes(challenge.id) ? 'rgba(255, 107, 107, 0.1)' : '#f8f9fa'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#666',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: likedChallenges.includes(challenge.id) ? 'rgba(255, 107, 107, 0.1)' : '#f8f9fa',
+                            transition: 'all 0.3s ease'
                         }}
                     >
                         {likedChallenges.includes(challenge.id) ? 
-                            <FaHeart style={{ ...styles.actionIcon, color: '#ff6b6b' }} /> : 
-                            <FaRegHeart style={styles.actionIcon} />
+                            <FaHeart style={{ color: '#ff6b6b' }} /> : 
+                            <FaRegHeart />
                         }
                         <span>Like</span>
                     </button>
                     
                     <button 
-                        onClick={() => toggleCommentInput(challenge.id)}
-                        style={styles.actionButton}
+                        onClick={() => handleJoinChallenge(challenge.id)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#fff',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: isParticipant ? '#4CAF50' : '#3a86ff',
+                            transition: 'all 0.3s ease'
+                        }}
+                        disabled={isParticipant}
                     >
-                        <FaComment style={styles.actionIcon} />
-                        <span>Comment</span>
+                        <FaUsers />
+                        <span>{isParticipant ? 'Joined' : 'Join Challenge'}</span>
                     </button>
                     
                     <button 
                         onClick={() => toggleSave(challenge.id)}
                         style={{
-                            ...styles.actionButton,
-                            backgroundColor: savedChallenges.includes(challenge.id) ? 'rgba(58, 134, 255, 0.1)' : '#f8f9fa'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#666',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: savedChallenges.includes(challenge.id) ? 'rgba(58, 134, 255, 0.1)' : '#f8f9fa',
+                            transition: 'all 0.3s ease'
                         }}
                     >
                         {savedChallenges.includes(challenge.id) ? 
-                            <FaBookmark style={{ ...styles.actionIcon, color: '#3a86ff' }} /> : 
-                            <FaRegBookmark style={styles.actionIcon} />
+                            <FaBookmark style={{ color: '#3a86ff' }} /> : 
+                            <FaRegBookmark />
                         }
                         <span>Save</span>
                     </button>
                 </div>
-                
-                {/* Comment Input */}
-                {showCommentInput === challenge.id && (
-                    <div style={styles.commentInputContainer}>
-                        <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="Write a comment..."
-                            style={styles.commentInput}
-                        />
-                        <button 
-                            onClick={() => handleCommentSubmit(challenge.id)}
-                            style={styles.submitButton}
-                        >
-                            Post Comment
-                        </button>
-                    </div>
-                )}
-
-                {/* Review Input */}
-                {showReviewInput === challenge.id && (
-                    <div style={styles.reviewInputContainer}>
-                        <div style={styles.ratingContainer}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <FaStar
-                                    key={star}
-                                    style={{
-                                        ...styles.starIcon,
-                                        color: star <= newReview.rating ? '#FFA500' : '#ddd'
-                                    }}
-                                    onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
-                                />
-                            ))}
-                        </div>
-                        <textarea
-                            value={newReview.text}
-                            onChange={(e) => setNewReview(prev => ({ ...prev, text: e.target.value }))}
-                            placeholder="Write your review..."
-                            style={styles.reviewInput}
-                        />
-                        <button 
-                            onClick={() => handleReviewSubmit(challenge.id)}
-                            style={styles.submitButton}
-                        >
-                            Submit Review
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -1162,7 +1281,7 @@ const styles = {
         fontWeight: '600',
         color: '#333'
     },
-    challengeDescription: {
+    detailsContent: {
         color: '#555',
         lineHeight: '1.6',
         fontSize: '1rem',
@@ -1176,19 +1295,6 @@ const styles = {
         border: '1px solid #eee'
     },
     rulesText: {
-        color: '#666',
-        lineHeight: '1.6',
-        fontSize: '0.95rem',
-        marginBottom: '0'
-    },
-    prizeSection: {
-        marginBottom: '20px',
-        padding: '15px',
-        background: '#fff8e1',
-        borderRadius: '12px',
-        border: '1px solid #ffe0b2'
-    },
-    prizeText: {
         color: '#666',
         lineHeight: '1.6',
         fontSize: '0.95rem',
@@ -1383,6 +1489,27 @@ const styles = {
         ':hover': {
             transform: 'translateY(-2px)',
             boxShadow: '0 5px 15px rgba(255, 107, 107, 0.3)'
+        }
+    },
+    showMoreButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 20px',
+        border: 'none',
+        borderRadius: '25px',
+        backgroundColor: '#f8f9fa',
+        color: '#666',
+        cursor: 'pointer',
+        fontSize: '0.95rem',
+        fontWeight: '500',
+        marginBottom: '20px',
+        transition: 'all 0.3s ease',
+        width: '100%',
+        justifyContent: 'center',
+        ':hover': {
+            backgroundColor: '#e9ecef',
+            transform: 'translateY(-2px)'
         }
     }
 };
