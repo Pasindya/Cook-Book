@@ -221,7 +221,7 @@ function AllChallengers() {
                 {challenge.challengeImage ? (
                     <div style={styles.imageWrapper}>
                         <img 
-                            src={`http://localhost:8080/uploads/${challenge.challengeImage}`}
+                            src={`http://localhost:8080/api/challenges/images/${challenge.challengeImage}`}
                             alt={challenge.ChallengeTitle}
                             style={styles.challengeImage}
                             onError={(e) => {
