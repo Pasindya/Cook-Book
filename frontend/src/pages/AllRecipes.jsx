@@ -176,10 +176,24 @@ function AllRecipes() {
   };
 
   const filteredRecipes = recipes.filter(recipe => {
+    // Search query filter
     const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || recipe.type.toLowerCase() === selectedType.toLowerCase();
-    return matchesSearch && matchesType;
+    
+    // Type filter
+    const matchesType = selectedFilters.type.length === 0 || 
+                       selectedFilters.type.includes(recipe.type);
+    
+    // Time filter
+    const matchesTime = !selectedFilters.time || 
+                       (recipe.time && recipe.time <= selectedFilters.time);
+    
+    // Difficulty filter
+    const matchesDifficulty = !selectedFilters.difficulty || 
+                            recipe.difficulty?.toLowerCase() === selectedFilters.difficulty.toLowerCase();
+
+    // Apply all filters
+    return matchesSearch && matchesType && matchesTime && matchesDifficulty;
   });
 
   const sortRecipes = (recipes) => {
@@ -413,12 +427,18 @@ function AllRecipes() {
                   <h3 className="text-lg font-semibold mb-4 text-gray-800">Cooking Time</h3>
                   <select
                     value={selectedFilters.time || ''}
-                    onChange={(e) => setSelectedFilters({...selectedFilters, time: e.target.value ? parseInt(e.target.value) : null})}
+                    onChange={(e) => {
+                      const value = e.target.value ? parseInt(e.target.value) : null;
+                      setSelectedFilters({...selectedFilters, time: value});
+                    }}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
                   >
                     <option value="">Any time</option>
+                    <option value="15">Under 15 minutes</option>
                     <option value="30">Under 30 minutes</option>
+                    <option value="45">Under 45 minutes</option>
                     <option value="60">Under 1 hour</option>
+                    <option value="90">Under 1.5 hours</option>
                     <option value="120">Under 2 hours</option>
                   </select>
                 </div>
@@ -426,7 +446,10 @@ function AllRecipes() {
                   <h3 className="text-lg font-semibold mb-4 text-gray-800">Difficulty Level</h3>
                   <select
                     value={selectedFilters.difficulty || ''}
-                    onChange={(e) => setSelectedFilters({...selectedFilters, difficulty: e.target.value || null})}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      setSelectedFilters({...selectedFilters, difficulty: value});
+                    }}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
                   >
                     <option value="">Any difficulty</option>
@@ -436,6 +459,64 @@ function AllRecipes() {
                   </select>
                 </div>
               </div>
+
+              {/* Active Filters Display */}
+              {(selectedFilters.type.length > 0 || selectedFilters.time || selectedFilters.difficulty) && (
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Active Filters:</span>
+                    {selectedFilters.type.map(type => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          setSelectedFilters({
+                            ...selectedFilters,
+                            type: selectedFilters.type.filter(t => t !== type)
+                          });
+                        }}
+                        className="px-3 py-1 bg-rose-100 text-rose-600 rounded-full text-sm flex items-center space-x-1 hover:bg-rose-200 transition-colors"
+                      >
+                        <span>{type}</span>
+                        <FaTimes className="text-xs" />
+                      </button>
+                    ))}
+                    {selectedFilters.time && (
+                      <button
+                        onClick={() => {
+                          setSelectedFilters({...selectedFilters, time: null});
+                        }}
+                        className="px-3 py-1 bg-rose-100 text-rose-600 rounded-full text-sm flex items-center space-x-1 hover:bg-rose-200 transition-colors"
+                      >
+                        <span>Under {selectedFilters.time} minutes</span>
+                        <FaTimes className="text-xs" />
+                      </button>
+                    )}
+                    {selectedFilters.difficulty && (
+                      <button
+                        onClick={() => {
+                          setSelectedFilters({...selectedFilters, difficulty: null});
+                        }}
+                        className="px-3 py-1 bg-rose-100 text-rose-600 rounded-full text-sm flex items-center space-x-1 hover:bg-rose-200 transition-colors"
+                      >
+                        <span>{selectedFilters.difficulty}</span>
+                        <FaTimes className="text-xs" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedFilters({
+                          type: [],
+                          time: null,
+                          difficulty: null
+                        });
+                      }}
+                      className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200 transition-colors"
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </div>
