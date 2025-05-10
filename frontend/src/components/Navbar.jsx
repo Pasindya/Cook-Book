@@ -291,7 +291,10 @@ function Navbar() {
                 <div style={styles.dropdownDivider}></div>
                 
                 <Link to="/displaychallengers" style={styles.dropdownItem}>
-                  <span>My Challengers</span>
+                  <span>My Challenges</span>
+                </Link>
+                <Link to="/allchallengers" style={styles.dropdownItem}>
+                  <span>All Challenges</span>
                 </Link>
                 
                 <div style={styles.dropdownDivider}></div>
