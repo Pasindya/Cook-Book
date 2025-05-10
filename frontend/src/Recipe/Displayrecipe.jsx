@@ -36,6 +36,9 @@ function DisplayRecipe() {
     });
     const { id } = useParams();
     const navigate = useNavigate();
+    const [reviews, setReviews] = useState({}); // { [recipeId]: [review, ...] }
+    const [editingReview, setEditingReview] = useState({}); // { [recipeId]: reviewObj }
+    const [reviewLoading, setReviewLoading] = useState({}); // { [recipeId]: boolean }
 
     const handleImageError = (e) => {
         e.target.onerror = null;
@@ -132,6 +135,7 @@ function DisplayRecipe() {
     const toggleReviewInput = (recipeId) => {
         setShowReviewInput(showReviewInput === recipeId ? null : recipeId);
         setNewReview({ rating: 0, text: '' });
+        fetchReviews(recipeId);
     };
 
     const handleCommentSubmit = (recipeId) => {
@@ -149,21 +153,50 @@ function DisplayRecipe() {
                 toast.error('Please provide both rating and review text');
                 return;
             }
-
-            const response = await axios.post(`http://localhost:8080/api/recipes/${recipeId}/reviews`, {
+            await axios.post(`http://localhost:8080/api/recipes/${recipeId}/reviews`, {
                 rating: newReview.rating,
-                text: newReview.text
+                comment: newReview.text,
+                userId: 'demoUser' // Replace with real userId if available
             });
-
-            if (response.data) {
-                toast.success('Review submitted successfully!');
-                setShowReviewInput(null);
-                setNewReview({ rating: 0, text: '' });
-                loadRecipes(); // Reload recipes to update the review
-            }
+            toast.success('Review submitted successfully!');
+            setShowReviewInput(null);
+            setNewReview({ rating: 0, text: '' });
+            fetchReviews(recipeId);
         } catch (error) {
-            console.error('Error submitting review:', error);
             toast.error('Failed to submit review');
+        }
+    };
+
+    const handleEditReview = (recipeId, review) => {
+        setEditingReview(prev => ({ ...prev, [recipeId]: review }));
+        setNewReview({ rating: review.rating, text: review.comment });
+        setShowReviewInput(recipeId);
+    };
+
+    const handleUpdateReview = async (recipeId, reviewId) => {
+        try {
+            await axios.put(`http://localhost:8080/api/reviews/${reviewId}`, {
+                rating: newReview.rating,
+                comment: newReview.text,
+                userId: 'demoUser' // Replace with real userId if available
+            });
+            toast.success('Review updated!');
+            setShowReviewInput(null);
+            setEditingReview(prev => ({ ...prev, [recipeId]: null }));
+            setNewReview({ rating: 0, text: '' });
+            fetchReviews(recipeId);
+        } catch (error) {
+            toast.error('Failed to update review');
+        }
+    };
+
+    const handleDeleteReview = async (recipeId, reviewId) => {
+        try {
+            await axios.delete(`http://localhost:8080/api/reviews/${reviewId}`);
+            toast.success('Review deleted!');
+            fetchReviews(recipeId);
+        } catch (error) {
+            toast.error('Failed to delete review');
         }
     };
 
@@ -226,6 +259,18 @@ function DisplayRecipe() {
         }
         return true;
     });
+
+    const fetchReviews = async (recipeId) => {
+        setReviewLoading(prev => ({ ...prev, [recipeId]: true }));
+        try {
+            const res = await axios.get(`http://localhost:8080/api/recipes/${recipeId}/reviews`);
+            setReviews(prev => ({ ...prev, [recipeId]: res.data }));
+        } catch (e) {
+            toast.error('Failed to load reviews');
+        } finally {
+            setReviewLoading(prev => ({ ...prev, [recipeId]: false }));
+        }
+    };
 
     if (loading) {
         return (
@@ -540,12 +585,44 @@ function DisplayRecipe() {
                                                 Cancel
                                             </button>
                                             <button
-                                                onClick={() => handleReviewSubmit(recipe.id)}
+                                                onClick={() => editingReview[recipe.id] ? handleUpdateReview(recipe.id, editingReview[recipe.id].id) : handleReviewSubmit(recipe.id)}
                                                 className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
                                             >
-                                                Submit Review
+                                                {editingReview[recipe.id] ? 'Update Review' : 'Submit Review'}
                                             </button>
                                         </div>
+                                    </div>
+                                )}
+
+                                {reviews[recipe.id] && (
+                                    <div className="mt-4">
+                                        <h4 className="font-semibold mb-2">Reviews:</h4>
+                                        {reviewLoading[recipe.id] ? (
+                                            <div>Loading reviews...</div>
+                                        ) : reviews[recipe.id].length === 0 ? (
+                                            <div>No reviews yet. Be the first to review!</div>
+                                        ) : (
+                                            reviews[recipe.id].map((review) => (
+                                                <div key={review.id} className="mb-2 p-2 bg-gray-50 rounded">
+                                                    <div className="flex items-center mb-1">
+                                                        {[1,2,3,4,5].map(star => (
+                                                            star <= review.rating ? <FaStar key={star} className="text-yellow-400" /> : <FaRegStar key={star} className="text-gray-300" />
+                                                        ))}
+                                                        <span className="ml-2 text-sm text-gray-600">{review.comment}</span>
+                                                    </div>
+                                                    <div className="flex items-center text-xs text-gray-400">
+                                                        <span>User: {review.userId}</span>
+                                                        {/* Show edit/delete if user is owner (replace 'demoUser' with real userId) */}
+                                                        {review.userId === 'demoUser' && (
+                                                            <>
+                                                                <button onClick={() => handleEditReview(recipe.id, review)} className="ml-2 text-blue-500">Edit</button>
+                                                                <button onClick={() => handleDeleteReview(recipe.id, review.id)} className="ml-2 text-red-500">Delete</button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 )}
 
