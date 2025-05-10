@@ -540,7 +540,7 @@ function Home() {
                         }}>
                             Join our community of food enthusiasts and share your favorite recipes with the world.
                         </p>
-                        <Link to="/recipe/add" style={{
+                        <Link to="/recipeadd" style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
