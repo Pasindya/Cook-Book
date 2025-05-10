@@ -5,7 +5,7 @@ import RecipeAdd from './Recipe/RecipeAdd';
 import Displayrecipe from './Recipe/Displayrecipe';
 import EditRecipe from './Recipe/EditRecipe';
 import AddChallengers from './Challengers/AddChallengers';
-import Challengers from './Challengers/challengers';
+import Challengers from './Challengers/Challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
 import UpdateChallenge from './Challengers/UpdateChallenge';
 
