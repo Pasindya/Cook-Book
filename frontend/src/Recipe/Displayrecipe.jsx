@@ -9,11 +9,47 @@ import {
   FaEdit, FaTrash, FaComment, FaUser,
   FaStar, FaRegStar, FaThumbsUp, FaRegThumbsUp,
   FaCamera, FaMapMarkerAlt, FaUserFriends, FaBookOpen,
-  FaStarHalfAlt
+  FaStarHalfAlt, FaTimes
 } from 'react-icons/fa';
 import { GiMeal, GiFruitBowl, GiChickenOven } from 'react-icons/gi';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Add ConfirmationModal component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, cancelText }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-500"
+                    >
+                        <FaTimes />
+                    </button>
+                </div>
+                <p className="text-gray-600 mb-6">{message}</p>
+                <div className="flex justify-end space-x-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                        {cancelText || 'Cancel'}
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                    >
+                        {confirmText || 'Confirm'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 function DisplayRecipe() {
     const [recipes, setRecipes] = useState([]);
@@ -36,10 +72,16 @@ function DisplayRecipe() {
     });
     const { id } = useParams();
     const navigate = useNavigate();
+
     const [reviews, setReviews] = useState({}); // { [recipeId]: [review, ...] }
     const [editingReview, setEditingReview] = useState({}); // { [recipeId]: reviewObj }
     const [reviewLoading, setReviewLoading] = useState({}); // { [recipeId]: boolean }
     const [reviewSectionState, setReviewSectionState] = useState({});
+
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedRecipe, setSelectedRecipe] = useState(null);
+
 
     const handleImageError = (e) => {
         e.target.onerror = null;
@@ -101,31 +143,42 @@ function DisplayRecipe() {
         setShowMenu(showMenu === recipeId ? null : recipeId);
     };
 
-    const handleDelete = async (recipeId) => {
-        if (window.confirm('Are you sure you want to delete this recipe?')) {
-            try {
-                setLoading(true);
-                console.log('Deleting recipe with ID:', recipeId);
-                
-                const response = await axios.delete(`http://localhost:8080/api/recipes/${recipeId}`);
-                
-                if (response.status === 200) {
-                    setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe.id !== recipeId));
-                    toast.success('Recipe deleted successfully');
-                    setShowMenu(null);
-                    await loadRecipes();
-                }
-            } catch (error) {
-                console.error('Error deleting recipe:', error);
-                toast.error(error.response?.data?.error || 'Failed to delete recipe');
-            } finally {
-                setLoading(false);
-            }
-        }
+    const handleEdit = (recipe) => {
+        setSelectedRecipe(recipe);
+        setShowEditModal(true);
     };
 
-    const handleEdit = (id) => {
-        navigate(`/recipes/edit/${id}`);
+    const handleEditConfirm = () => {
+        setShowEditModal(false);
+        navigate(`/recipes/edit/${selectedRecipe.id}`);
+    };
+
+    const handleDelete = (recipe) => {
+        setSelectedRecipe(recipe);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedRecipe) return;
+
+        try {
+            setLoading(true);
+            const response = await axios.delete(`http://localhost:8080/api/recipes/${selectedRecipe.id}`);
+            
+            if (response.status === 200) {
+                setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe.id !== selectedRecipe.id));
+                toast.success('Recipe deleted successfully');
+                setShowMenu(null);
+                await loadRecipes();
+            }
+        } catch (error) {
+            console.error('Error deleting recipe:', error);
+            toast.error(error.response?.data?.error || 'Failed to delete recipe');
+        } finally {
+            setLoading(false);
+            setShowDeleteModal(false);
+            setSelectedRecipe(null);
+        }
     };
 
     const toggleCommentInput = (recipeId) => {
@@ -749,14 +802,14 @@ function DisplayRecipe() {
                                 {showMenu === recipe.id && (
                                     <div className="absolute right-4 top-12 bg-white rounded-lg shadow-lg border border-rose-100 z-50">
                                         <button
-                                            onClick={() => handleEdit(recipe.id)}
+                                            onClick={() => handleEdit(recipe)}
                                             className="flex items-center space-x-2 px-4 py-2 hover:bg-rose-50 w-full text-rose-500"
                                         >
                                             <FaEdit />
                                             <span>Edit Recipe</span>
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(recipe.id)}
+                                            onClick={() => handleDelete(recipe)}
                                             className="flex items-center space-x-2 px-4 py-2 hover:bg-rose-50 w-full text-red-400"
                                         >
                                             <FaTrash />
@@ -769,6 +822,33 @@ function DisplayRecipe() {
                     ))}
                 </div>
             </div>
+
+            {/* Confirmation Modals */}
+            <ConfirmationModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setSelectedRecipe(null);
+                }}
+                onConfirm={handleEditConfirm}
+                title="Edit Recipe"
+                message={`Are you sure you want to edit "${selectedRecipe?.title}"?`}
+                confirmText="Edit"
+                cancelText="Cancel"
+            />
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setSelectedRecipe(null);
+                }}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Recipe"
+                message={`Are you sure you want to delete "${selectedRecipe?.title}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 }

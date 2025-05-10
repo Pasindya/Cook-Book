@@ -34,7 +34,7 @@ function Navbar() {
 
   const navLinks = [
     { path: "/all-recipes", icon: <MdExplore />, label: "Explore" },
-    { path: "/challengers", icon: <FaTrophy />, label: "Challenges" },
+    { path: "/allchallengers", icon: <FaTrophy />, label: "Challenges" },
     { path: "/community", icon: <RiLiveLine />, label: "Live" },
     { path: "/groups", icon: <FaUsers />, label: "Groups" }
   ];
@@ -291,11 +291,9 @@ function Navbar() {
                 <div style={styles.dropdownDivider}></div>
                 
                 <Link to="/displaychallengers" style={styles.dropdownItem}>
-                  <span>My Challenges</span>
+                  <span>My Challengers</span>
                 </Link>
-                <Link to="/allchallengers" style={styles.dropdownItem}>
-                  <span>All Challenges</span>
-                </Link>
+               
                 
                 <div style={styles.dropdownDivider}></div>
                 

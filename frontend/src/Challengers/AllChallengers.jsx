@@ -33,6 +33,15 @@ function AllChallengers() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [participants, setParticipants] = useState({});
     const [showParticipants, setShowParticipants] = useState(null);
+
+    const [showJoinModal, setShowJoinModal] = useState(false);
+    const [selectedChallenge, setSelectedChallenge] = useState(null);
+    const [joinFormData, setJoinFormData] = useState({
+        name: '',
+        email: '',
+        reason: ''
+    });
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -175,7 +184,7 @@ function AllChallengers() {
     };
     
     const toggleParticipants = (challengeId) => {
-        setShowParticipants(showParticipants === challengeId ? null : challengeId);
+        setShowParticipants(showParticipants === challenge.id ? null : challenge.id);
     };
 
     const handleDelete = async (challengeId) => {
@@ -260,21 +269,62 @@ function AllChallengers() {
         navigate(`/updatechallenge/${challengeId}`);
     };
     
-    const handleJoinChallenge = async (challengeId) => {
+
+    const handleJoinClick = (challenge) => {
+        setSelectedChallenge(challenge);
+        setShowJoinModal(true);
+    };
+
+    const handleJoinSubmit = async (e) => {
+        e.preventDefault();
         try {
-            await axios.post(`http://localhost:8080/api/challenges/${challengeId}/join`);
-            toast.success('Successfully joined the challenge!');
-            // Reload participants for this challenge
-            const response = await axios.get(`http://localhost:8080/api/challenges/${challengeId}/participants`);
-            setParticipants(prev => ({
-                ...prev,
-                [challengeId]: response.data
-            }));
+            // First, save the joined challenge to localStorage
+            const prevJoined = JSON.parse(localStorage.getItem('joinedChallenges')) || [];
+            const alreadyJoined = prevJoined.some(c => c.id === selectedChallenge.id);
+            
+            if (!alreadyJoined) {
+                const newJoined = [...prevJoined, selectedChallenge];
+                localStorage.setItem('joinedChallenges', JSON.stringify(newJoined));
+            }
+
+            // Then make the API call
+            await axios.post(`http://localhost:8080/api/challenges/${selectedChallenge.id}/join`, joinFormData);
+            
+            // Show success message
+            toast.success('Successfully joined the challenge! Redirecting to your profile...', {
+                position: "top-center",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
+            // Close the modal and reset form
+            setShowJoinModal(false);
+            setJoinFormData({ name: '', email: '', reason: '' });
+
+            // Navigate to profile page immediately
+            navigate('/profile', { 
+                state: { 
+                    activeTab: 'joinedChallenges',
+                    message: `You have successfully joined the "${selectedChallenge.ChallengeTitle}" challenge!`
+                }
+            });
+
         } catch (error) {
             console.error("Error joining challenge:", error);
-            toast.error(error.response?.data || 'Failed to join challenge');
+            toast.error(error.response?.data || 'Failed to join challenge', {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
         }
     };
+
 
     const renderChallengeSection = (title, challenges, icon, color) => {
         if (challenges.length === 0) return null;
@@ -336,8 +386,6 @@ function AllChallengers() {
                             toggleLike={toggleLike}
                             showMenu={showMenu}
                             toggleMenu={toggleMenu}
-                            handleDelete={handleDelete}
-                            handleUpdate={handleUpdate}
                             showCommentInput={showCommentInput}
                             toggleCommentInput={toggleCommentInput}
                             showReviewInput={showReviewInput}
@@ -354,7 +402,7 @@ function AllChallengers() {
                             participants={participants[challenge.id] || []}
                             showParticipants={showParticipants}
                             toggleParticipants={toggleParticipants}
-                            handleJoinChallenge={handleJoinChallenge}
+                            handleJoinClick={handleJoinClick}
                         />
                     ))}
                 </div>
@@ -396,6 +444,154 @@ function AllChallengers() {
     return (
         <div>
             <Navbar />
+            
+            {/* Hero Section */}
+            <div style={{
+                position: 'relative',
+                height: '600px',
+                width: '100%',
+                overflow: 'hidden',
+                marginBottom: '50px'
+            }}>
+                {/* Background Image with Overlay */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'url("https://images.unsplash.com/photo-1556911220-bff31c812dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'brightness(0.6)'
+                }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.8))'
+                    }} />
+                </div>
+
+                {/* Hero Content */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    padding: '0 20px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        padding: '30px 50px',
+                        borderRadius: '20px',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        maxWidth: '800px'
+                    }}>
+                        <h1 style={{
+                            color: '#fff',
+                            fontSize: '4rem',
+                            fontWeight: '800',
+                            marginBottom: '20px',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                            background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            Cooking Competitions
+                        </h1>
+                        <p style={{
+                            color: '#fff',
+                            fontSize: '1.4rem',
+                            maxWidth: '600px',
+                            marginBottom: '40px',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                            lineHeight: '1.6'
+                        }}>
+                            Showcase your culinary skills, compete with top chefs, and win exciting prizes
+                        </p>
+
+                        {/* Search Bar */}
+                        <div style={{
+                            width: '100%',
+                            maxWidth: '700px',
+                            position: 'relative'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                gap: '15px',
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                padding: '15px',
+                                borderRadius: '50px',
+                                boxShadow: '0 4px 30px rgba(0,0,0,0.3)'
+                            }}>
+                                <div style={{
+                                    flex: 1,
+                                    position: 'relative'
+                                }}>
+                                    <FaSearch style={{
+                                        position: 'absolute',
+                                        left: '25px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#666',
+                                        fontSize: '1.4rem'
+                                    }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search cooking competitions..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '18px 20px 18px 60px',
+                                            borderRadius: '25px',
+                                            border: 'none',
+                                            fontSize: '1.1rem',
+                                            outline: 'none',
+                                            background: 'transparent'
+                                        }}
+                                    />
+                                </div>
+                                <button 
+                                    onClick={() => navigate('/addchallengers')}
+                                    style={{
+                                        padding: '18px 35px',
+                                        borderRadius: '25px',
+                                        border: 'none',
+                                        background: 'linear-gradient(45deg, #FF6B6B, #FFA500)',
+                                        color: 'white',
+                                        fontSize: '1.1rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: '0 4px 15px rgba(255,107,107,0.3)',
+                                        ':hover': {
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: '0 6px 20px rgba(255,107,107,0.4)'
+                                        }
+                                    }}
+                                >
+                                    <FaFireAlt style={{ fontSize: '1.2rem' }} /> Create Competition
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -404,7 +600,6 @@ function AllChallengers() {
                 backgroundColor: '#f9f9f9',
                 minHeight: '100vh'
             }}>
-                
                 <ToastContainer position="top-right" autoClose={3000} />
                 
                 <div style={{
@@ -669,6 +864,221 @@ function AllChallengers() {
                     </div>
                 )}
                 
+
+                {/* Join Challenge Modal */}
+                {showJoinModal && selectedChallenge && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '20px',
+                            padding: '30px',
+                            width: '90%',
+                            maxWidth: '600px',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            position: 'relative',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                        }}>
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowJoinModal(false)}
+                                style={{
+                                    position: 'absolute',
+                                    top: '20px',
+                                    right: '20px',
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#666'
+                                }}
+                            >
+                                ×
+                            </button>
+
+                            {/* Challenge Details */}
+                            <div style={{ marginBottom: '30px' }}>
+                                <h2 style={{
+                                    fontSize: '1.8rem',
+                                    color: '#333',
+                                    marginBottom: '15px',
+                                    fontWeight: '600'
+                                }}>
+                                    Join Challenge: {selectedChallenge.ChallengeTitle}
+                                </h2>
+                                
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '20px',
+                                    marginBottom: '20px'
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{
+                                            fontSize: '1.1rem',
+                                            color: '#666',
+                                            marginBottom: '10px'
+                                        }}>Challenge Details</h3>
+                                        <p style={{
+                                            fontSize: '0.95rem',
+                                            color: '#444',
+                                            lineHeight: '1.6'
+                                        }}>
+                                            {selectedChallenge.challengeDetails}
+                                        </p>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{
+                                            fontSize: '1.1rem',
+                                            color: '#666',
+                                            marginBottom: '10px'
+                                        }}>Rules</h3>
+                                        <p style={{
+                                            fontSize: '0.95rem',
+                                            color: '#444',
+                                            lineHeight: '1.6'
+                                        }}>
+                                            {selectedChallenge.rules}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Join Form */}
+                            <form onSubmit={handleJoinSubmit}>
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{
+                                        display: 'block',
+                                        marginBottom: '8px',
+                                        color: '#333',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        Your Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={joinFormData.name}
+                                        onChange={(e) => setJoinFormData(prev => ({ ...prev, name: e.target.value }))}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            fontSize: '0.95rem'
+                                        }}
+                                        placeholder="Enter your name"
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{
+                                        display: 'block',
+                                        marginBottom: '8px',
+                                        color: '#333',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        Email Address
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={joinFormData.email}
+                                        onChange={(e) => setJoinFormData(prev => ({ ...prev, email: e.target.value }))}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            fontSize: '0.95rem'
+                                        }}
+                                        placeholder="Enter your email"
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '30px' }}>
+                                    <label style={{
+                                        display: 'block',
+                                        marginBottom: '8px',
+                                        color: '#333',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        Why do you want to join this challenge?
+                                    </label>
+                                    <textarea
+                                        value={joinFormData.reason}
+                                        onChange={(e) => setJoinFormData(prev => ({ ...prev, reason: e.target.value }))}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            fontSize: '0.95rem',
+                                            minHeight: '100px',
+                                            resize: 'vertical'
+                                        }}
+                                        placeholder="Tell us why you want to join this challenge..."
+                                    />
+                                </div>
+
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '15px',
+                                    justifyContent: 'flex-end'
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowJoinModal(false)}
+                                        style={{
+                                            padding: '12px 25px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            background: 'white',
+                                            color: '#666',
+                                            fontSize: '0.95rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            padding: '12px 25px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: 'linear-gradient(45deg, #3a86ff, #4CAF50)',
+                                            color: 'white',
+                                            fontSize: '0.95rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                                        }}
+                                    >
+                                        Join Challenge
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+                
+
                 <style>{`
                     @keyframes spin {
                         0% { transform: rotate(0deg); }
@@ -698,8 +1108,6 @@ const ChallengeCard = ({
     toggleLike,
     showMenu,
     toggleMenu,
-    handleDelete,
-    handleUpdate,
     showCommentInput,
     toggleCommentInput,
     showReviewInput,
@@ -716,7 +1124,7 @@ const ChallengeCard = ({
     participants,
     showParticipants,
     toggleParticipants,
-    handleJoinChallenge
+    handleJoinClick
 }) => {
     const isParticipant = participants?.some(p => p.id === 'current-user-id'); // Replace with actual user ID check
 
@@ -737,103 +1145,11 @@ const ChallengeCard = ({
                 position: 'absolute',
                 top: '20px',
                 right: '20px',
-                zIndex: '2',
-                display: 'flex',
-                gap: '10px'
+                zIndex: '2'
             }}>
                 {getStatusBadge(challenge.startDate, challenge.endDate)}
-                
-                {/* Three-dot Menu Button */}
-                <div style={{ position: 'relative' }}>
-                    <button
-                        onClick={(e) => toggleMenu(challenge.id, e)}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.9)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <FaEllipsisH style={{ color: '#666' }} />
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {showMenu === challenge.id && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '40px',
-                            right: '0',
-                            background: 'white',
-                            borderRadius: '12px',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
-                            padding: '8px 0',
-                            minWidth: '180px',
-                            zIndex: '1000',
-                            animation: 'slideIn 0.2s ease'
-                        }}>
-                            <button
-                                onClick={() => {
-                                    handleUpdate(challenge.id);
-                                    setShowMenu(null);
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '12px 16px',
-                                    width: '100%',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: '#333',
-                                    fontSize: '0.95rem',
-                                    transition: 'all 0.2s ease',
-                                    ':hover': {
-                                        background: '#f8f9fa'
-                                    }
-                                }}
-                            >
-                                <FaEdit style={{ color: '#4CAF50' }} />
-                                <span>Edit Challenge</span>
-                            </button>
-                            
-                            <button
-                                onClick={() => {
-                                    handleDelete(challenge.id);
-                                    setShowMenu(null);
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '12px 16px',
-                                    width: '100%',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: '#333',
-                                    fontSize: '0.95rem',
-                                    transition: 'all 0.2s ease',
-                                    ':hover': {
-                                        background: '#f8f9fa'
-                                    }
-                                }}
-                            >
-                                <FaTrash style={{ color: '#ff6b6b' }} />
-                                <span>Delete Challenge</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
-            
+
             {/* Challenge Image */}
             <div style={{
                 width: '100%',
@@ -1137,6 +1453,31 @@ const ChallengeCard = ({
                     </button>
                     
                     <button 
+                        onClick={() => handleJoinClick(challenge)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            color: '#fff',
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontWeight: '500',
+                            backgroundColor: isParticipant ? '#4CAF50' : '#3a86ff',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                        }}
+                        disabled={isParticipant}
+                    >
+                        <FaUsers />
+                        <span>{isParticipant ? 'Joined' : 'Join Challenge'}</span>
+                    </button>
+                    
+                    <button 
                         onClick={() => toggleSave(challenge.id)}
                         style={{
                             display: 'flex',
@@ -1162,6 +1503,155 @@ const ChallengeCard = ({
                         <span>Save</span>
                     </button>
                 </div>
+
+
+                {/* Participants Section */}
+                {expandedChallenges[challenge.id] && (
+                    <div style={{
+                        marginTop: '20px',
+                        padding: '15px',
+                        background: '#f8f9fa',
+                        borderRadius: '12px',
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '15px'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <FaUsers style={{ color: '#3a86ff' }} />
+                                <span style={{
+                                    fontSize: '1.1rem',
+                                    fontWeight: '600',
+                                    color: '#333'
+                                }}>Participants</span>
+                            </div>
+                            <span style={{
+                                fontSize: '0.9rem',
+                                color: '#666',
+                                backgroundColor: '#fff',
+                                padding: '5px 10px',
+                                borderRadius: '15px',
+                                border: '1px solid #e9ecef'
+                            }}>
+                                {participants?.length || 0} joined
+                            </span>
+                        </div>
+                        
+                        {participants && participants.length > 0 ? (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px'
+                            }}>
+                                {participants.slice(0, 3).map((participant, index) => (
+                                    <div key={index} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '10px',
+                                        background: '#fff',
+                                        borderRadius: '8px',
+                                        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <div style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            background: '#e9ecef',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <FaUser style={{ color: '#666' }} />
+                                        </div>
+                                        <span style={{
+                                            fontSize: '0.95rem',
+                                            color: '#333',
+                                            fontWeight: '500'
+                                        }}>
+                                            {participant.username || 'Anonymous User'}
+                                        </span>
+                                    </div>
+                                ))}
+                                
+                                {participants.length > 3 && (
+                                    <button
+                                        onClick={() => toggleParticipants(challenge.id)}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: '#3a86ff',
+                                            fontSize: '0.9rem',
+                                            cursor: 'pointer',
+                                            padding: '5px 0',
+                                            textAlign: 'center',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        {showParticipants === challenge.id ? 'Show Less' : `Show ${participants.length - 3} more`}
+                                    </button>
+                                )}
+                                
+                                {showParticipants === challenge.id && (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '10px',
+                                        marginTop: '10px'
+                                    }}>
+                                        {participants.slice(3).map((participant, index) => (
+                                            <div key={index} style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '10px',
+                                                background: '#fff',
+                                                borderRadius: '8px',
+                                                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                                            }}>
+                                                <div style={{
+                                                    width: '32px',
+                                                    height: '32px',
+                                                    borderRadius: '50%',
+                                                    background: '#e9ecef',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}>
+                                                    <FaUser style={{ color: '#666' }} />
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '0.95rem',
+                                                    color: '#333',
+                                                    fontWeight: '500'
+                                                }}>
+                                                    {participant.username || 'Anonymous User'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '20px',
+                                color: '#666',
+                                fontSize: '0.95rem'
+                            }}>
+                                No participants yet. Be the first to join!
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </div>
         </div>
     );
