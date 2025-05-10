@@ -72,9 +72,16 @@ function DisplayRecipe() {
     });
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const [reviews, setReviews] = useState({}); // { [recipeId]: [review, ...] }
+    const [editingReview, setEditingReview] = useState({}); // { [recipeId]: reviewObj }
+    const [reviewLoading, setReviewLoading] = useState({}); // { [recipeId]: boolean }
+    const [reviewSectionState, setReviewSectionState] = useState({});
+
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState(null);
+
 
     const handleImageError = (e) => {
         e.target.onerror = null;
@@ -182,6 +189,7 @@ function DisplayRecipe() {
     const toggleReviewInput = (recipeId) => {
         setShowReviewInput(showReviewInput === recipeId ? null : recipeId);
         setNewReview({ rating: 0, text: '' });
+        fetchReviews(recipeId);
     };
 
     const handleCommentSubmit = (recipeId) => {
@@ -199,21 +207,50 @@ function DisplayRecipe() {
                 toast.error('Please provide both rating and review text');
                 return;
             }
-
-            const response = await axios.post(`http://localhost:8080/api/recipes/${recipeId}/reviews`, {
+            await axios.post(`http://localhost:8080/api/recipes/${recipeId}/reviews`, {
                 rating: newReview.rating,
-                text: newReview.text
+                comment: newReview.text,
+                userId: 'demoUser' // Replace with real userId if available
             });
-
-            if (response.data) {
-                toast.success('Review submitted successfully!');
-                setShowReviewInput(null);
-                setNewReview({ rating: 0, text: '' });
-                loadRecipes(); // Reload recipes to update the review
-            }
+            toast.success('Review submitted successfully!');
+            setShowReviewInput(null);
+            setNewReview({ rating: 0, text: '' });
+            fetchReviews(recipeId);
         } catch (error) {
-            console.error('Error submitting review:', error);
             toast.error('Failed to submit review');
+        }
+    };
+
+    const handleEditReview = (recipeId, review) => {
+        setEditingReview(prev => ({ ...prev, [recipeId]: review }));
+        setNewReview({ rating: review.rating, text: review.comment });
+        setShowReviewInput(recipeId);
+    };
+
+    const handleUpdateReview = async (recipeId, reviewId) => {
+        try {
+            await axios.put(`http://localhost:8080/api/reviews/${reviewId}`, {
+                rating: newReview.rating,
+                comment: newReview.text,
+                userId: 'demoUser' // Replace with real userId if available
+            });
+            toast.success('Review updated!');
+            setShowReviewInput(null);
+            setEditingReview(prev => ({ ...prev, [recipeId]: null }));
+            setNewReview({ rating: 0, text: '' });
+            fetchReviews(recipeId);
+        } catch (error) {
+            toast.error('Failed to update review');
+        }
+    };
+
+    const handleDeleteReview = async (recipeId, reviewId) => {
+        try {
+            await axios.delete(`http://localhost:8080/api/reviews/${reviewId}`);
+            toast.success('Review deleted!');
+            fetchReviews(recipeId);
+        } catch (error) {
+            toast.error('Failed to delete review');
         }
     };
 
@@ -276,6 +313,48 @@ function DisplayRecipe() {
         }
         return true;
     });
+
+    const fetchReviews = async (recipeId) => {
+        setReviewLoading(prev => ({ ...prev, [recipeId]: true }));
+        try {
+            const res = await axios.get(`http://localhost:8080/api/recipes/${recipeId}/reviews`);
+            setReviews(prev => ({ ...prev, [recipeId]: res.data }));
+        } catch (e) {
+            toast.error('Failed to load reviews');
+        } finally {
+            setReviewLoading(prev => ({ ...prev, [recipeId]: false }));
+        }
+    };
+
+    // Add helper to calculate average and breakdown
+    const getReviewStats = (reviewsArr) => {
+        if (!reviewsArr || reviewsArr.length === 0) {
+            return {
+                avg: null,
+                count: 0,
+                breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            };
+        }
+        const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        let sum = 0;
+        reviewsArr.forEach(r => {
+            breakdown[r.rating] = (breakdown[r.rating] || 0) + 1;
+            sum += r.rating;
+        });
+        return {
+            avg: (sum / reviewsArr.length).toFixed(1),
+            count: reviewsArr.length,
+            breakdown
+        };
+    };
+
+    const handleStarClick = (recipeId) => {
+        setReviewSectionState(prev => ({
+            ...prev,
+            [recipeId]: prev[recipeId] === 'expanded' ? 'collapsed' : 'expanded'
+        }));
+        if (!reviews[recipeId]) fetchReviews(recipeId);
+    };
 
     if (loading) {
         return (
@@ -507,11 +586,11 @@ function DisplayRecipe() {
                                         <span>{recipe.comments?.length || 0}</span>
                                     </button>
                                     <button 
-                                        onClick={() => toggleReviewInput(recipe.id)}
+                                        onClick={() => handleStarClick(recipe.id)}
                                         className="flex items-center space-x-2 text-gray-500 hover:text-rose-400 transition-colors"
                                     >
                                         <FaStar />
-                                        <span>{recipe.reviews?.length || 0}</span>
+                                        <span>{reviews[recipe.id]?.length || 0}</span>
                                     </button>
                                     <button 
                                         onClick={() => shareRecipe(recipe)}
@@ -590,13 +669,133 @@ function DisplayRecipe() {
                                                 Cancel
                                             </button>
                                             <button
-                                                onClick={() => handleReviewSubmit(recipe.id)}
+                                                onClick={() => editingReview[recipe.id] ? handleUpdateReview(recipe.id, editingReview[recipe.id].id) : handleReviewSubmit(recipe.id)}
                                                 className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
                                             >
-                                                Submit Review
+                                                {editingReview[recipe.id] ? 'Update Review' : 'Submit Review'}
                                             </button>
                                         </div>
                                     </div>
+                                )}
+
+                                {reviewSectionState[recipe.id] === 'expanded' && (
+                                    <>
+                                        {/* Review summary and list */}
+                                        <div className="mt-4 mb-4 p-4 bg-white rounded shadow-sm">
+                                            <div className="mb-2 font-bold text-lg flex items-center text-yellow-500">
+                                                <FaStar className="mr-1" /> Reviews
+                                            </div>
+                                            {(() => {
+                                                const stats = getReviewStats(reviews[recipe.id]);
+                                                return (
+                                                    <div className="flex flex-col md:flex-row md:items-center md:space-x-8">
+                                                        <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+                                                            <div className="flex items-center">
+                                                                <span className="text-4xl font-bold text-yellow-500 mr-2">{stats.avg ? stats.avg : 'N/A'}</span>
+                                                                <div className="flex">
+                                                                    {[1,2,3,4,5].map(star => (
+                                                                        <span key={star}>
+                                                                            {stats.avg && star <= Math.round(stats.avg) ? <FaStar className="text-yellow-400 text-2xl" /> : <FaRegStar className="text-yellow-300 text-2xl" />}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-gray-600 text-sm mt-1">{stats.count} review{stats.count !== 1 ? 's' : ''}</div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            {[5,4,3,2,1].map(star => (
+                                                                <div key={star} className="flex items-center text-sm mb-1">
+                                                                    <span className="w-10 text-gray-600">{star} star</span>
+                                                                    <div className="flex-1 bg-gray-200 rounded h-2 mx-2">
+                                                                        <div style={{ width: stats.count ? `${(stats.breakdown[star] / stats.count) * 100}%` : '0%' }} className={`bg-yellow-400 h-2 rounded`}></div>
+                                                                    </div>
+                                                                    <span className="w-4 text-gray-600">{stats.breakdown[star]}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div className="mt-4">
+                                            <h4 className="font-semibold mb-2">Reviews:</h4>
+                                            {reviewLoading[recipe.id] ? (
+                                                <div>Loading reviews...</div>
+                                            ) : reviews[recipe.id].length === 0 ? (
+                                                <div>No reviews yet. Be the first to review!</div>
+                                            ) : (
+                                                reviews[recipe.id].map((review) => (
+                                                    <div key={review.id} className="mb-2 p-2 bg-gray-50 rounded">
+                                                        <div className="flex items-center mb-1">
+                                                            {[1,2,3,4,5].map(star => (
+                                                                star <= review.rating ? <FaStar key={star} className="text-yellow-400" /> : <FaRegStar key={star} className="text-gray-300" />
+                                                            ))}
+                                                            <span className="ml-2 text-sm text-gray-600">{review.comment}</span>
+                                                        </div>
+                                                        <div className="flex items-center text-xs text-gray-400">
+                                                            <span>User: {review.userId}</span>
+                                                            <>
+                                                                {review.userId === 'demoUser' && (
+                                                                    <button
+                                                                        onClick={() => handleEditReview(recipe.id, review)}
+                                                                        className="flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-500 hover:text-white transition-colors duration-200 mr-2"
+                                                                        title="Edit Review"
+                                                                    >
+                                                                        <FaEdit className="mr-1" /> Edit
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleDeleteReview(recipe.id, review.id)}
+                                                                    className="flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-200"
+                                                                    title="Delete Review"
+                                                                >
+                                                                    <FaTrash className="mr-1" /> Delete
+                                                                </button>
+                                                            </>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        {/* Add review form */}
+                                        <div className="mt-4 p-4 bg-rose-50 rounded-lg">
+                                            <div className="mb-4">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                                                <div className="flex space-x-2">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button
+                                                            key={star}
+                                                            onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                                                            className="text-2xl text-gray-400 hover:text-rose-400 transition-colors"
+                                                        >
+                                                            {star <= newReview.rating ? <FaStar className="text-rose-400" /> : <FaRegStar />}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <textarea
+                                                value={newReview.text}
+                                                onChange={(e) => setNewReview(prev => ({ ...prev, text: e.target.value }))}
+                                                placeholder="Write your review..."
+                                                className="w-full p-3 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                                                rows="3"
+                                            />
+                                            <div className="mt-3 flex justify-end space-x-3">
+                                                <button
+                                                    onClick={() => setReviewSectionState(prev => ({ ...prev, [recipe.id]: 'collapsed' }))}
+                                                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReviewSubmit(recipe.id)}
+                                                    className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                                                >
+                                                    Submit Review
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
 
                                 {/* Recipe Actions */}
