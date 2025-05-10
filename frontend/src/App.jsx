@@ -8,6 +8,7 @@ import AddChallengers from './Challengers/AddChallengers';
 import Challengers from './Challengers/challengers';
 import DisplayChallengers from './Challengers/DisplayChallengers';
 import UpdateChallenge from './Challengers/UpdateChallenge';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/addchallengers" element={<AddChallengers />} />
         <Route path="/displaychallengers" element={<DisplayChallengers />} />
         <Route path="/updatechallenge/:id" element={<UpdateChallenge />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </>
   );
